@@ -29,4 +29,10 @@ Imposta il signal handler per gestire:
 */
 void set_handler();
 
+/* Stampa la città in ASCII sul terminale */
+void print_city(int city_id);
+
+/* Imposta le buche della città */
+void set_city_holes(int city_id);
+
 #endif

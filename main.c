@@ -10,6 +10,9 @@ int main() {
   set_handler();
 
   init_city_cells(city_id);
+  /* set_city_holes(city_id); */
+
+  print_city(city_id);
 
   pause();
 

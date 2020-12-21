@@ -95,3 +95,35 @@ void set_handler() {
 
   sigaction(SIGINT, &act, NULL);
 }
+
+void print_city(int city_id) {
+  City city = shmat(city_id, NULL, 0);
+  int i;
+
+  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++) {
+    if (i % SO_WIDTH == 0) {
+      printf("\n");
+    } else {
+      printf(". ");
+    }
+  }
+
+  printf("\n\n");
+
+  shmdt(city);
+}
+
+void set_city_holes(int city_id) {
+  City city = shmat(city_id, NULL, 0);
+  int i = 0, pos = -1;
+
+  while (i < SO_HOLES) {
+    pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
+
+    /* TODO: finire il riprova per ottenere buche non adiacenti */
+  }
+
+  printf("\n\n");
+
+  shmdt(city);
+}
