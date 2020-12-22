@@ -32,8 +32,8 @@ void set_handler();
 /* Stampa la città in ASCII sul terminale */
 void print_city(int city_id);
 
-/* Imposta le buche della città */
-void set_city_holes(int city_id);
+/* Posiziona le buche nella città */
+void place_city_holes(int city_id);
 
 /* Inizializzazione statistiche */
 void init_stats();

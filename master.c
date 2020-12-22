@@ -11,6 +11,8 @@
 #include <strings.h>
 #include <signal.h>
 
+#define ADJACENT_CELLS 8
+
 /* OGGETTI IPC */
 int g_city_id;
 int g_requests_id;
@@ -22,6 +24,29 @@ int * g_top_cells;
 Taxi g_most_street;
 Taxi g_most_long_travel;
 Taxi g_most_requests;
+
+
+void master_handler(int signum);
+
+Point index2point(int index);
+
+int point2index(Point p);
+
+void generate_adjacent_list(Point p, int list[]);
+
+int is_valid_hole_point(Point p, City city);
+
+void place_hole(int pos, City city); 
+
+int rand_int(int min, int max);
+
+void init_cell(Cell c);
+
+/*
+====================================
+  PUBLIC
+====================================
+*/
 
 void check_params() {
   if (SO_SOURCES > (SO_WIDTH * SO_HEIGHT - SO_HOLES)) {
@@ -75,24 +100,6 @@ void clear_ipc_memory() {
   }
 }
 
-/* PRIVATE */
-int rand_int(int min, int max) {
-  if (min == max) {
-    return min;
-  } else {
-    return (rand() % (max - min + 1)) + min;
-  }
-}
-
-/* PRIVATE */
-void init_cell(Cell c) {
-  srand(time(NULL));
-
-  c.type = CELL_NORMAL;
-  c.capacity = rand_int(SO_CAP_MIN, SO_CAP_MAX);
-  c.cross_time = rand_int(SO_TIMENSEC_MIN, SO_TIMENSEC_MAX);
-}
-
 void init_city_cells(int city_id) {
   City city = shmat(city_id, NULL, 0);
   int i;
@@ -102,14 +109,6 @@ void init_city_cells(int city_id) {
   }
 
   shmdt(city);
-}
-
-/* PRIVATE */
-void master_handler(int signum) {
-  if (signum == SIGINT) {
-    clear_ipc_memory();
-    exit(EXIT_FAILURE);
-  }
 }
 
 void set_handler() {
@@ -142,63 +141,7 @@ void print_city(int city_id) {
   shmdt(city);
 }
 
-/* PRIVATE */
-Point index2point(int index) {
-  Point p;
-
-  p.x = index % SO_WIDTH + 1;
-  p.y = index / SO_WIDTH + 1;
-
-  return p;
-}
-
-/* PRIVATE */
-int point2index(Point p) {
-  return p.y * SO_WIDTH - 1;
-}
-
-/* REF: https://stackoverflow.com/questions/2035522/get-adjacent-elements-in-a-two-dimensional-array */
-/* PRIVATE */
-void generate_index_list(Point p, int list[]) {
-  Point tmp;
-  int dx, dy;
-  int i = 0;
-
-  for (dx = -1; dx <= 1; dx++) {
-    for (dy = -1; dy <= 1; dy++) {
-      if (!(dx == 0 && dy == 0)) {
-        tmp.x = p.x + dx;
-        tmp.y = p.y + dy;
-
-        list[i] = point2index(tmp);
-        i++;
-      }
-    }
-  }
-}
-
-/* PRIVATE */
-int is_valid_hole_point(Point p, City city) {
-  int list[8]; /* TODO: sostituire magic constant */
-  int i, is_valid = 1;
-
-  generate_index_list(p, list);
-
-  for (i = 0; i < 8; i++) {
-    is_valid = is_valid && city[list[i]].type != CELL_HOLE;
-  }
-
-  return is_valid;
-}
-
-/* PRIVATE */
-void place_hole(int pos, City city) {
-  city[pos].capacity = 0;
-  city[pos].cross_time = 0;
-  city[pos].type = CELL_HOLE;
-}
-
-void set_city_holes(int city_id) {
+void place_city_holes(int city_id) {
   City city = shmat(city_id, NULL, 0);
   int i = 0, pos = -1;
 
@@ -224,4 +167,101 @@ void init_stats() {
   bzero(&g_most_long_travel, sizeof g_most_long_travel);
   bzero(&g_most_requests, sizeof g_most_requests);
   bzero(&g_most_street, sizeof g_most_street);
+}
+
+/*
+====================================
+  PRIVATE
+====================================
+*/
+
+/* Signal handler del processo master */
+void master_handler(int signum) {
+  if (signum == SIGINT) {
+    clear_ipc_memory();
+    exit(EXIT_FAILURE);
+  }
+}
+
+/* Conversione indice -> punto */
+Point index2point(int index) {
+  Point p;
+
+  p.x = index % SO_WIDTH;
+  p.y = index / SO_WIDTH;
+
+  return p;
+}
+
+/* Conversione punto -> indice */
+int point2index(Point p) {
+  return SO_WIDTH * p.y + p.x;
+}
+
+/* 
+Genera una lista dei punti adiacenti a p
+x x x
+x . x
+x x x
+*/
+void generate_adjacent_list(Point p, int list[]) {
+  Point tmp;
+  int dx, dy;
+  int i = 0;
+
+  for (dx = -1; dx <= 1; dx++) {
+    for (dy = -1; dy <= 1; dy++) {
+      if (!(dx == 0 && dy == 0)) {
+        tmp.x = p.x + dx;
+        tmp.y = p.y + dy;
+
+        list[i] = point2index(tmp);
+        i++;
+      }
+    }
+  }
+}
+
+/* Verifica che p sia un punto valido per una buca */
+int is_valid_hole_point(Point p, City city) {
+  int list[ADJACENT_CELLS];
+  int i, is_valid = TRUE;
+  int pos;
+
+  generate_adjacent_list(p, list);
+
+  for (i = 0; i < 8; i++) {
+    pos = list[i];
+    
+    if (pos > -1 && pos < SO_WIDTH * SO_HEIGHT) {
+      is_valid = is_valid && city[pos].type != CELL_HOLE;
+    }
+  }
+
+  return is_valid;
+}
+
+/* Posiziona una buca in pos */
+void place_hole(int pos, City city) {
+  city[pos].capacity = 0;
+  city[pos].cross_time = 0;
+  city[pos].type = CELL_HOLE;
+}
+
+/* Genera un numero random fra [min, max] */
+int rand_int(int min, int max) {
+  if (min == max) {
+    return min;
+  } else {
+    return (rand() % (max - min + 1)) + min;
+  }
+}
+
+/* Inizializza una cella normale */
+void init_cell(Cell c) {
+  srand(time(NULL));
+
+  c.type = CELL_NORMAL;
+  c.capacity = rand_int(SO_CAP_MIN, SO_CAP_MAX);
+  c.cross_time = rand_int(SO_TIMENSEC_MIN, SO_TIMENSEC_MAX);
 }

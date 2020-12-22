@@ -23,20 +23,18 @@ typedef struct cell {
 /* Città = array di lunghezza SO_WIDTH * SO_HEIGHT */
 typedef Cell * City;
 
-/*
-index2point {x: i % SO_WIDTH + 1, y: i / SO_WIDTH + 1}
-point2index p.y * SO_WIDTH - 1
-*/
-
 /* 
-Utile per calcolare sulla città
+Utile per calcolare posizioni sulla città
 */
 typedef struct point {
   int x;
   int y;
 } Point;
 
-/* Struttura abbinata ad un processo taxi */
+/* Per comodità */
+enum Bool {FALSE, TRUE};
+
+/* Struttura provvisoria abbinata ad un processo taxi */
 typedef struct taxi {
   int crossed_cells;
   int travel_time;

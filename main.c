@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "params.h"
 #include "master.h"
 #include "data_structures.h"
@@ -11,7 +10,7 @@ int main() {
   set_handler();
 
   init_city_cells(city_id);
-  set_city_holes(city_id);
+  place_city_holes(city_id);
   init_stats();
 
   print_city(city_id);
