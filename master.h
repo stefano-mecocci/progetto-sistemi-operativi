@@ -35,4 +35,10 @@ void print_city(int city_id);
 /* Imposta le buche della città */
 void set_city_holes(int city_id);
 
+/* Inizializzazione statistiche */
+void init_stats();
+
+/* Crea coda di richieste per i taxi */
+int create_requests_msq();
+
 #endif
