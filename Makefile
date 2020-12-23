@@ -1,11 +1,9 @@
 CC = gcc
 CFLAGS = -std=c89 -pedantic
 
-MASTER = master.c main.c
-MASTER_EXE = main
-
 compile: clean
-	@$(CC) $(CFLAGS) -o $(MASTER_EXE) $(MASTER)
+	@$(CC) $(CFLAGS) -o main master.c main.c
+	@$(CC) $(CFLAGS) -o taxi taxi_main.c
 
 clean:
-	@rm -f $(MASTER_EXE)
+	@rm -f main taxi

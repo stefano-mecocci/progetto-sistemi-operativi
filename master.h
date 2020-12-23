@@ -41,4 +41,7 @@ void init_stats();
 /* Crea coda di richieste per i taxi */
 int create_requests_msq();
 
+/* Crea i processi taxi */
+pid_t *create_taxis();
+
 #endif
