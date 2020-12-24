@@ -12,12 +12,17 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/sem.h>
 
 #define ADJACENT_CELLS 8
+#define DEBUG printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
 
 /* OGGETTI IPC */
-int g_city_id;
-int g_requests_id;
+int g_city_id; /* shm della città */
+int g_requests_id; /* coda di richieste */
+int g_sync_sem_id; /* Semaforo di sync */
+
+pid_t *g_taxi_pids;
 
 /* STATISTICHE */
 int g_travels;
@@ -51,27 +56,64 @@ void create_taxi();
 ====================================
 */
 
-pid_t *create_taxis() {
-  pid_t pid, *taxi_pids = malloc(sizeof(pid_t) * SO_TAXI);
+void sem_wait_zero(int sem_arr, int sem) {
+  struct sembuf sops[1];
+  int err;
+
+  sops[0].sem_flg = 0;
+  sops[0].sem_num = sem;
+  sops[0].sem_op = 0;
+
+  err = semop(sem_arr, sops, 1);
+
+  if (err == -1) {
+    DEBUG;
+    raise(SIGINT);
+  }
+}
+
+void sem_set(int sem_arr, int sem, int value) {
+  int err = semctl(sem_arr, sem, SETVAL, value);
+
+  if (err == -1) {
+    DEBUG;
+    raise(SIGINT);
+  }
+}
+
+int create_sync_sem() {
+  int nsems = 1; /* TODO: spiegare perché */
+  int id = semget(getpid(), nsems, 0660 | IPC_CREAT);
+  g_sync_sem_id = id;
+
+  if (id == -1) {
+    DEBUG;
+    raise(SIGINT);
+  }
+
+  return id;
+}
+
+void create_taxis() {
+  pid_t pid;
   int i;
+
+  g_taxi_pids = malloc(sizeof(pid_t) * SO_TAXI);
 
   for (i = 0; i < SO_TAXI; i++) {
     pid = fork();
 
     if (pid == -1) {
-      clear_ipc_memory();
-      printf("ERRORE: %d\n", errno);
-      exit(EXIT_FAILURE);
+      DEBUG;
+      raise(SIGINT);
     }
 
     if (pid == 0) {
       create_taxi();
     } else {
-      taxi_pids[i] = pid;
+      g_taxi_pids[i] = pid;
     }
   }
-
-  return taxi_pids;
 }
 
 void check_params() {
@@ -97,8 +139,8 @@ int create_city() {
   g_city_id = id;
 
   if (id == -1) {
-    printf("ERRNO: %d\n", errno);
-    exit(EXIT_FAILURE);
+    DEBUG;
+    raise(SIGINT);
   }
 
   return id;
@@ -109,8 +151,8 @@ int create_requests_msq() {
   g_requests_id = id;
 
   if (id == -1) {
-    printf("ERRNO: %d\n", errno);
-    exit(EXIT_FAILURE);
+    DEBUG;
+    raise(SIGINT);
   }
 
   return id;
@@ -119,9 +161,10 @@ int create_requests_msq() {
 void clear_ipc_memory() {
   int err = shmctl(g_city_id, IPC_RMID, NULL);
   err += msgctl(g_requests_id, IPC_RMID, NULL);
+  err += semctl(g_sync_sem_id, -1, IPC_RMID);
 
   if (err < 0) {
-    printf("ERRNO: %d\n", errno);
+    DEBUG;
     exit(EXIT_FAILURE);
   }
 }
@@ -202,19 +245,24 @@ void init_stats() {
 */
 
 void create_taxi() {
-  char *args[2] = {"taxi", "a"};
+  char *args[2] = {"taxi", NULL};
   int err = execve(args[0], args, environ);
 
   if (err == -1) {
-    clear_ipc_memory();
-    printf("ERRORE: %d\n", errno);
-    exit(EXIT_FAILURE);
+    DEBUG;
+    raise(SIGINT);
   }
 }
 
 /* Signal handler del processo master */
 void master_handler(int signum) {
+  int i;
+
   if (signum == SIGINT) {
+    for (i = 0; i < SO_TAXI; i++) {
+      kill(g_taxi_pids[i], SIGINT);
+    }
+
     clear_ipc_memory();
     exit(EXIT_FAILURE);
   }

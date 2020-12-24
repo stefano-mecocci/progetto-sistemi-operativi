@@ -1,12 +1,12 @@
 #include "params.h"
 #include "master.h"
 #include "data_structures.h"
+#include <sys/types.h>
 
 int main() {
   int city_id = create_city();
   int requests_id = create_requests_msq();
-
-  pid_t *taxis;
+  int sync_sem = create_sync_sem();
   
   check_params();
   set_handler();
@@ -14,8 +14,10 @@ int main() {
   init_city_cells(city_id);
   place_city_holes(city_id);
   init_stats();
+  sem_set(sync_sem, 0, SO_TAXI);
 
-  taxis = create_taxis();
+  create_taxis();
+  sem_wait_zero(sync_sem, 0);
   print_city(city_id);
 
   pause();

@@ -1,6 +1,8 @@
 #ifndef _MASTER_H
 #define _MASTER_H
 
+#include <sys/types.h>
+
 /*
 Controlla che i parametri siano validi
 */
@@ -42,6 +44,18 @@ void init_stats();
 int create_requests_msq();
 
 /* Crea i processi taxi */
-pid_t *create_taxis();
+void create_taxis();
+
+/* 
+Crea il semaforo per far sincronizzare:
+- master e taxi
+-master e richieste
+*/
+int create_sync_sem();
+
+/* Imposta il sem in sem_arr a value */
+void sem_set(int sem_arr, int sem, int value);
+
+void sem_wait_zero(int sem_arr, int sem);
 
 #endif
