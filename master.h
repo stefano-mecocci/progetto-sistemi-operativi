@@ -23,7 +23,7 @@ void init_city_cells(int city_id);
 /*
 Pulisce la memoria dagli oggetti IPC usati
 */
-void clear_ipc_memory();
+void clear_memory();
 
 /*
 Imposta il signal handler per gestire:
@@ -57,5 +57,9 @@ int create_sync_sem();
 void sem_set(int sem_arr, int sem, int value);
 
 void sem_wait_zero(int sem_arr, int sem);
+
+int create_master_msq();
+
+int create_city_sems();
 
 #endif

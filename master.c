@@ -18,11 +18,15 @@
 #define DEBUG printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
 
 /* OGGETTI IPC */
-int g_city_id; /* shm della città */
-int g_requests_id; /* coda di richieste */
-int g_sync_sem_id; /* Semaforo di sync */
+int g_city_id; /* città */
+int g_requests_msq; /* coda richieste */
+int g_master_msq; /* coda master */
+int g_city_sems; /* Semafori per le celle */
+int g_sync_sem_id; /* semafori di sync */
 
+/* ENTITà: TAXI E SOURCES */
 pid_t *g_taxi_pids;
+pid_t *g_sources_pids;
 
 /* STATISTICHE */
 int g_travels;
@@ -56,6 +60,31 @@ void create_taxi();
 ====================================
 */
 
+int create_city_sems() {
+  int nsems = SO_WIDTH * SO_HEIGHT;
+  int id = semget(IPC_PRIVATE, nsems, 0660 | IPC_CREAT);
+  g_city_sems = id;
+
+  if (id == -1) {
+    DEBUG;
+    raise(SIGINT);
+  }
+
+  return id;
+}
+
+int create_master_msq() {
+  int id = msgget(IPC_PRIVATE, 0660 | IPC_CREAT);
+  g_master_msq = id;
+
+  if (id == -1) {
+    DEBUG;
+    raise(SIGINT);
+  }
+
+  return id;
+}
+
 void sem_wait_zero(int sem_arr, int sem) {
   struct sembuf sops[1];
   int err;
@@ -65,7 +94,7 @@ void sem_wait_zero(int sem_arr, int sem) {
   sops[0].sem_op = 0;
 
   err = semop(sem_arr, sops, 1);
-
+  
   if (err == -1) {
     DEBUG;
     raise(SIGINT);
@@ -148,7 +177,7 @@ int create_city() {
 
 int create_requests_msq() {
   int id = msgget(getpid(), 0660 | IPC_CREAT);
-  g_requests_id = id;
+  g_requests_msq = id;
 
   if (id == -1) {
     DEBUG;
@@ -158,14 +187,20 @@ int create_requests_msq() {
   return id;
 }
 
-void clear_ipc_memory() {
+void clear_memory() {
   int err = shmctl(g_city_id, IPC_RMID, NULL);
-  err += msgctl(g_requests_id, IPC_RMID, NULL);
+  err += msgctl(g_master_msq, IPC_RMID, NULL);
+  err += msgctl(g_requests_msq, IPC_RMID, NULL);
   err += semctl(g_sync_sem_id, -1, IPC_RMID);
+  err += semctl(g_city_sems, -1, IPC_RMID);
+
+  free(g_top_cells);
+  free(g_sources);
+  free(g_taxi_pids);
 
   if (err < 0) {
     DEBUG;
-    exit(EXIT_FAILURE);
+    raise(SIGINT);
   }
 }
 
@@ -263,7 +298,7 @@ void master_handler(int signum) {
       kill(g_taxi_pids[i], SIGINT);
     }
 
-    clear_ipc_memory();
+    clear_memory();
     exit(EXIT_FAILURE);
   }
 }

@@ -41,4 +41,14 @@ typedef struct taxi {
   int requests;
 } Taxi;
 
+/*
+Messaggio di richiesta taxi:
+- formato -> "x y"
+- lunghezza 12+1+12 (REF: lunghezza massima int)
+*/
+typedef struct request {
+  long mtype;
+  char mtext[25];
+} Request;
+
 #endif
