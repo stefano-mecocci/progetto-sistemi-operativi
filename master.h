@@ -3,63 +3,86 @@
 
 #include <sys/types.h>
 
-/*
-Controlla che i parametri siano validi
-*/
+/* Città array in shm */
+int create_city();
+
+/* Array semafori per sincronizzazioni */
+int create_sync_sems();
+
+/* Array semafori per operare su celle */
+int create_city_sems_op();
+
+/* Array semafori per controllare la capacità */
+int create_city_sems_cap();
+
+/* Coda per richieste taxi */
+int create_requests_msq();
+
+/* Coda per info taxi per statistiche */
+int create_taxi_info_msq();
+
+/* Coda per (re)spawnare taxi */
+int create_taxi_spawn_msq();
+
+/* Scrive l'id nel file filename */
+void write_id_to_file(int id, char * filename);
+
+/* Controlla i parametri */
 void check_params();
 
 /*
-Crea la città in memoria condivisa
-salva l'ID nella var globale g_city_id
-ritorna l'ID
+Inizializza i dati globali:
+- entità (source_pids e taxigen_pid)
+- statistiche (g_travels, g_top_cells e taxi vari)
 */
-int create_city();
+void init_data();
 
-/*
-Inizializza tutte le celle come normali
-*/
-void init_city_cells(int city_id);
-
-/*
-Pulisce la memoria dagli oggetti IPC usati
-*/
-void clear_memory();
-
-/*
-Imposta il signal handler per gestire:
-- SIGINT -> pulisce memoria IPC e termina
-*/
+/* Imposta il signal handler di master */
 void set_handler();
 
-/* Stampa la città in ASCII sul terminale */
-void print_city(int city_id);
+/* Inizializza le celle della città */
+void init_city_cells(int city_id);
 
-/* Posiziona le buche nella città */
+/* Inizializza semafori di sincronizzazione */
+void init_sync_sems(int sync_sems);
+
+/* Inizializza semafori "modificabile" a 1 = modificabile */
+void init_city_sems_op(int city_sems_op);
+
+/* Inizializza i semafori capacità alla cap. collegata */
+void init_city_sems_cap(int city_id, int city_sems_cap);
+
+/* Piazza SO_HOLES buche nella città */
 void place_city_holes(int city_id);
 
-/* Inizializzazione statistiche */
-void init_stats();
+/* Crea il processo taxigen */
+void create_taxigen();
 
-/* Crea coda di richieste per i taxi */
-int create_requests_msq();
+/* Manda SO_TAXI messaggi per far creare i relativi processi */
+void create_taxis(int taxi_spawn_msq);
 
-/* Crea i processi taxi */
-void create_taxis();
+/* Avvio il timer di master di SO_DURATION secondi */
+void start_timer();
 
-/* 
-Crea il semaforo per far sincronizzare:
-- master e taxi
--master e richieste
-*/
-int create_sync_sem();
+/* Aspetta che sem sia 0 */
+int sem_wait_zero(int sem_arr, int sem, short flag);
 
-/* Imposta il sem in sem_arr a value */
-void sem_set(int sem_arr, int sem, int value);
+/* AUTOESPLICATIVO */
+int sem_increase(int sem_arr, int sem, int value, short flag);
 
-void sem_wait_zero(int sem_arr, int sem);
+/* AUTOESPLICATIVO */
+int sem_decrease(int sem_arr, int sem, int value, short flag);
 
-int create_master_msq();
+/* Crea i processi sorgente */
+void create_sources();
 
-int create_city_sems();
+/* Stampa la città in ASCII */
+void print_city(int city_id);
+
+/* Imposta le celle sorgenti nella città */
+void set_sources(int city_id, int city_sems_op);
+
+/* Invia le posizioni di origine alle source */
+void send_sources_origins();
 
 #endif

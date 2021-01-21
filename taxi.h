@@ -1,18 +1,24 @@
 #ifndef _TAXI_H
 #define _TAXI_H
 
-/* Ottieni ID del semaforo sync taxi-master */
-int get_sync_sem();
+#include <sys/types.h>
 
-/* Ottieni ID della coda di messaggi taxi-requests */
-int get_requests_msq();
-
-/* Rimuovi value dal semaforo sem in sem_arr */
-void sem_decrease(int sem_arr, int sem, int value);
+/* Legge l'id di una risorsa IPC da un file */
+int read_id_from_file(char * filename);
 
 /* Imposta il signal handler di taxi */
 void set_handler();
 
-void take_request(int requests_msq);
+/* Inizializza dati IPC che servono globali */
+void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems);
+
+/* Inizializza altri dati globali */
+void init_data(int master_pid, int pos);
+
+/* AUTOESPLICATIVO */
+int sem_decrease(int sem_arr, int sem, int value, short flag);
+
+/* Avvia il timer di SO_TIMEOUT */
+pid_t start_timer();
 
 #endif

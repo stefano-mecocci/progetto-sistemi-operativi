@@ -1,17 +1,42 @@
-#include <stdio.h>
+#define _GNU_SOURCE
+
 #include "data_structures.h"
+#include "params.h"
 #include "taxi.h"
+#include <errno.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/msg.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <time.h>
+#include <unistd.h>
 
-int main() {
-  int sync_sem = get_sync_sem();
-  int requests_msq = get_requests_msq();
-
+int main(int argc, char const *argv[]) {
+  int taxi_spawn_msq = read_id_from_file("taxi_spawn_msq");
+  int taxi_info_msq = read_id_from_file("taxi_info_msq");
+  int requests_msq = read_id_from_file("requests_msq");
+  int sync_sems = read_id_from_file("sync_sems");
+  int city_sems_op = read_id_from_file("city_sems_op");
+  int city_sems_cap = read_id_from_file("city_sems_cap");
+  int city_id = read_id_from_file("city_id");
+  pid_t timer_pid;
+  
+  init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems);
+  init_data(atoi(argv[2]), atoi(argv[3]));
   set_handler();
-  sem_decrease(sync_sem, 0, -1);
 
-  while (TRUE) {
-    take_request(requests_msq);
+  if (atoi(argv[1]) == FALSE) {
+    sem_decrease(sync_sems, SEM_SYNC_TAXI, -1, IPC_NOWAIT);
   }
+
+  timer_pid = start_timer();
+
+  while (1);
 
   return 0;
 }

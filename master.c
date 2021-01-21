@@ -3,216 +3,203 @@
 #include "master.h"
 #include "data_structures.h"
 #include "params.h"
+
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 #include <sys/msg.h>
+#include <sys/sem.h>
 #include <sys/shm.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/sem.h>
 
-#define ADJACENT_CELLS 8
-#define DEBUG printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
+#define ADJACENT_CELLS_NUM 8
+#define DEBUG                                                                  \
+  printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
+
+#define DEBUG_RAISE_INT(err)                                                   \
+  if (err < 0) {                                                               \
+    DEBUG;                                                                     \
+    raise(SIGINT);                                                             \
+  }
+
+#define DEBUG_RAISE_ADDR(addr)                                                 \
+  if (addr == NULL) {                                                          \
+    DEBUG;                                                                     \
+    raise(SIGINT);                                                             \
+  }
 
 /* OGGETTI IPC */
-int g_city_id; /* città */
-int g_requests_msq; /* coda richieste */
-int g_master_msq; /* coda master */
-int g_city_sems; /* Semafori per le celle */
-int g_sync_sem_id; /* semafori di sync */
+int g_city_id;        /* città */
+int g_sync_sems;      /* semafori di sync */
+int g_city_sems_op;   /* semafori per operare su celle */
+int g_city_sems_cap;  /* semafori per controllare capacità */
+int g_requests_msq;   /* Coda richieste */
+int g_taxi_info_msq;  /* Coda informazioni statistiche */
+int g_taxi_spawn_msq; /* Coda spawns */
 
-/* ENTITà: TAXI E SOURCES */
-pid_t *g_taxi_pids;
-pid_t *g_sources_pids;
+/* ENTITÀ */
+pid_t *g_source_pids;
+pid_t g_taxigen_pid;
+int *g_sources_positions;
 
 /* STATISTICHE */
-int g_travels;
-int *g_sources;
-int *g_top_cells;
-Taxi g_most_street;
-Taxi g_most_long_travel;
-Taxi g_most_requests;
+int g_travels;           /* viaggi totali (successo, abortiti ecc.) */
+int *g_top_cells;        /* posizione celle più attraversate */
+Taxi g_most_street;      /* Taxi che ha percorso più celle */
+Taxi g_most_long_travel; /* Taxi che ha fatto il viaggio più lungo */
+Taxi g_most_requests;    /* Taxi che ha raccolto più richieste */
 
+void init_taxi(Taxi *taxi);
 void master_handler(int signum);
-
-Point index2point(int index);
-
-int point2index(Point p);
-
-void generate_adjacent_list(Point p, int list[]);
-
-int is_valid_hole_point(Point p, City city);
-
-void place_hole(int pos, City city);
-
+void clear_memory();
 int rand_int(int min, int max);
-
-void init_cell(Cell c);
-
-void create_taxi();
+Point index2point(int index);
+int point2index(Point p);
+void generate_adjacent_list(Point p, int list[]);
+int is_valid_hole_point(Point p, City city);
+void place_hole(int pos, City city);
+int sem_op(int sem_arr, int sem, int value, short flag);
+void create_source();
+int generate_origin_point(int, int);
+void send_source_origin(int origin_msq, int origin);
+void add_taxi_info_msq_end();
+void update_stats();
+void update_taxi_stats(int taxi_msg[]);
+void copy_taxi_data(int taxi_msg[], Taxi *taxi);
+void print_stats();
 
 /*
 ====================================
-  PUBLIC
+  FUNZIONI "PUBBLICHE"
 ====================================
 */
 
-int create_city_sems() {
-  int nsems = SO_WIDTH * SO_HEIGHT;
-  int id = semget(IPC_PRIVATE, nsems, 0660 | IPC_CREAT);
-  g_city_sems = id;
-
-  if (id == -1) {
-    DEBUG;
-    raise(SIGINT);
-  }
-
-  return id;
-}
-
-int create_master_msq() {
-  int id = msgget(IPC_PRIVATE, 0660 | IPC_CREAT);
-  g_master_msq = id;
-
-  if (id == -1) {
-    DEBUG;
-    raise(SIGINT);
-  }
-
-  return id;
-}
-
-void sem_wait_zero(int sem_arr, int sem) {
-  struct sembuf sops[1];
-  int err;
-
-  sops[0].sem_flg = 0;
-  sops[0].sem_num = sem;
-  sops[0].sem_op = 0;
-
-  err = semop(sem_arr, sops, 1);
-  
-  if (err == -1) {
-    DEBUG;
-    raise(SIGINT);
-  }
-}
-
-void sem_set(int sem_arr, int sem, int value) {
-  int err = semctl(sem_arr, sem, SETVAL, value);
-
-  if (err == -1) {
-    DEBUG;
-    raise(SIGINT);
-  }
-}
-
-int create_sync_sem() {
-  int nsems = 1; /* TODO: spiegare perché */
-  int id = semget(getpid(), nsems, 0660 | IPC_CREAT);
-  g_sync_sem_id = id;
-
-  if (id == -1) {
-    DEBUG;
-    raise(SIGINT);
-  }
-
-  return id;
-}
-
-void create_taxis() {
-  pid_t pid;
-  int i;
-
-  g_taxi_pids = malloc(sizeof(pid_t) * SO_TAXI);
-
-  for (i = 0; i < SO_TAXI; i++) {
-    pid = fork();
-
-    if (pid == -1) {
-      DEBUG;
-      raise(SIGINT);
-    }
-
-    if (pid == 0) {
-      create_taxi();
-    } else {
-      g_taxi_pids[i] = pid;
-    }
-  }
-}
-
-void check_params() {
-  if (SO_SOURCES > (SO_WIDTH * SO_HEIGHT - SO_HOLES)) {
-    printf("ERRORE: troppe sorgenti, città troppo piccola o troppe buche\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if (SO_CAP_MIN > SO_CAP_MAX) {
-    printf("ERRORE: SO_CAP_MIN maggiore di SO_CAP_MAX\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if (SO_TIMENSEC_MIN > SO_TIMENSEC_MAX) {
-    printf("ERRORE: SO_TIMENSEC_MIN maggiore di SO_TIMENSEC_MAX\n");
-    exit(EXIT_FAILURE);
-  }
-}
-
 int create_city() {
   int size = sizeof(Cell) * SO_WIDTH * SO_HEIGHT;
-  int id = shmget(getpid(), size, 0660 | IPC_CREAT);
+  int id = shmget(IPC_PRIVATE, size, 0660 | IPC_CREAT);
   g_city_id = id;
 
-  if (id == -1) {
-    DEBUG;
-    raise(SIGINT);
-  }
+  DEBUG_RAISE_INT(id);
+
+  return id;
+}
+
+int create_sync_sems() {
+  int nsems = 3;
+  int id = semget(IPC_PRIVATE, nsems, 0660 | IPC_CREAT);
+  g_sync_sems = id;
+
+  DEBUG_RAISE_INT(id);
+
+  return id;
+}
+
+int create_city_sems_op() {
+  int nsems = SO_WIDTH * SO_HEIGHT;
+  int id = semget(IPC_PRIVATE, nsems, 0660 | IPC_CREAT);
+  g_city_sems_op = id;
+
+  DEBUG_RAISE_INT(id);
+
+  return id;
+}
+
+int create_city_sems_cap() {
+  int nsems = SO_WIDTH * SO_HEIGHT;
+  int id = semget(IPC_PRIVATE, nsems, 0660 | IPC_CREAT);
+  g_city_sems_cap = id;
+
+  DEBUG_RAISE_INT(id);
 
   return id;
 }
 
 int create_requests_msq() {
-  int id = msgget(getpid(), 0660 | IPC_CREAT);
+  int id = msgget(IPC_PRIVATE, 0660 | IPC_CREAT);
   g_requests_msq = id;
 
-  if (id == -1) {
-    DEBUG;
-    raise(SIGINT);
-  }
+  DEBUG_RAISE_INT(id);
 
   return id;
 }
 
-void clear_memory() {
-  int err = shmctl(g_city_id, IPC_RMID, NULL);
-  err += msgctl(g_master_msq, IPC_RMID, NULL);
-  err += msgctl(g_requests_msq, IPC_RMID, NULL);
-  err += semctl(g_sync_sem_id, -1, IPC_RMID);
-  err += semctl(g_city_sems, -1, IPC_RMID);
+int create_taxi_info_msq() {
+  int id = msgget(IPC_PRIVATE, 0660 | IPC_CREAT);
+  g_taxi_info_msq = id;
 
-  free(g_top_cells);
-  free(g_sources);
-  free(g_taxi_pids);
+  DEBUG_RAISE_INT(id);
 
-  if (err < 0) {
-    DEBUG;
+  return id;
+}
+
+int create_taxi_spawn_msq() {
+  int id = msgget(IPC_PRIVATE, 0660 | IPC_CREAT);
+  g_taxi_spawn_msq = id;
+
+  DEBUG_RAISE_INT(id);
+
+  return id;
+}
+
+void write_id_to_file(int id, char *filename) {
+  FILE *file = fopen(filename, "w");
+
+  fprintf(file, "%d", id);
+  fclose(file);
+}
+
+void check_params() {
+  if (SO_SOURCES > (SO_WIDTH * SO_HEIGHT - SO_HOLES)) {
+    printf("Errore: troppe sorgenti, città troppo piccola o troppe buche\n");
+    raise(SIGINT);
+  }
+
+  if (SO_CAP_MIN > SO_CAP_MAX) {
+    printf("Errore: SO_CAP_MIN maggiore di SO_CAP_MAX\n");
+    raise(SIGINT);
+  }
+
+  if (SO_TIMENSEC_MIN > SO_TIMENSEC_MAX) {
+    printf("Errore: SO_TIMENSEC_MIN maggiore di SO_TIMENSEC_MAX\n");
+    raise(SIGINT);
+  }
+
+  if (SO_TIMEOUT >= SO_DURATION) {
+    printf("Errore: SO_TIMEOUT maggiore di SO_DURATION\n");
     raise(SIGINT);
   }
 }
 
-void init_city_cells(int city_id) {
-  City city = shmat(city_id, NULL, 0);
+void init_data() {
   int i;
 
-  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++) {
-    init_cell(city[i]);
+  g_source_pids = malloc(sizeof(pid_t) * SO_SOURCES);
+  g_taxigen_pid = -1;
+  g_sources_positions = malloc(sizeof(int) * SO_SOURCES);
+
+  g_travels = 0;
+  g_top_cells = malloc(sizeof(int) * SO_TOP_CELLS);
+  init_taxi(&g_most_street);
+  init_taxi(&g_most_long_travel);
+  init_taxi(&g_most_requests);
+
+  DEBUG_RAISE_ADDR(g_source_pids);
+  DEBUG_RAISE_ADDR(g_sources_positions);
+  DEBUG_RAISE_ADDR(g_top_cells);
+
+  for (i = 0; i < SO_SOURCES; i++) {
+    g_source_pids[i] = -1;
+    g_sources_positions[i] = -1;
   }
 
-  shmdt(city);
+  for (i = 0; i < SO_TOP_CELLS; i++) {
+    g_top_cells[i] = -1;
+  }
 }
 
 void set_handler() {
@@ -222,25 +209,50 @@ void set_handler() {
   act.sa_handler = master_handler;
 
   sigaction(SIGINT, &act, NULL);
+  sigaction(SIGUSR2, &act, NULL);
+  sigaction(SIGUSR1, &act, NULL);
 }
 
-void print_city(int city_id) {
+void init_city_cells(int city_id) {
   City city = shmat(city_id, NULL, 0);
   int i;
 
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++) {
-    if (i % SO_WIDTH == 0) {
-      printf("\n");
-    } else {
-      if (city[i].type == CELL_HOLE) {
-        printf("o ");
-      } else {
-        printf(". ");
-      }
-    }
+    city[i].type = CELL_NORMAL;
+    city[i].capacity = rand_int(SO_CAP_MIN, SO_CAP_MAX);
+    city[i].act_capacity = city[i].capacity;
+    city[i].cross_time = rand_int(SO_TIMENSEC_MIN, SO_TIMENSEC_MAX);
+    city[i].crossing_num = 0;
   }
 
-  printf("\n\n");
+  shmdt(city);
+}
+
+void init_sync_sems(int sync_sems) {
+  int err = 0;
+
+  err += semctl(sync_sems, SEM_SYNC_TAXI, SETVAL, SO_TAXI);
+  err += semctl(sync_sems, SEM_SYNC_SOURCES, SETVAL, SO_SOURCES);
+  err += semctl(sync_sems, SEM_ALIVES_TAXI, SETVAL, 0);
+
+  DEBUG_RAISE_INT(err);
+}
+
+void init_city_sems_op(int city_sems_op) {
+  int i;
+
+  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++) {
+    semctl(city_sems_op, i, SETVAL, 1);
+  }
+}
+
+void init_city_sems_cap(int city_id, int city_sems_cap) {
+  City city = shmat(city_id, NULL, 0);
+  int i;
+
+  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++) {
+    semctl(city_sems_cap, i, SETVAL, city[i].capacity);
+  }
 
   shmdt(city);
 }
@@ -263,29 +275,153 @@ void place_city_holes(int city_id) {
   shmdt(city);
 }
 
-void init_stats() {
-  g_sources = malloc(sizeof(int) * SO_SOURCES);
-  g_top_cells = malloc(sizeof(int) * SO_TOP_CELLS);
-  g_travels = 0;
+void create_taxigen() {
+  pid_t pid = fork();
+  char *args[2] = {"taxigen", NULL};
+  int err;
 
-  bzero(&g_most_long_travel, sizeof g_most_long_travel);
-  bzero(&g_most_requests, sizeof g_most_requests);
-  bzero(&g_most_street, sizeof g_most_street);
+  DEBUG_RAISE_INT(pid);
+
+  if (pid == 0) {
+    err = execve(args[0], args, environ);
+
+    if (err == -1) {
+      DEBUG;
+      raise(SIGINT);
+    }
+  }
+
+  g_taxigen_pid = pid;
+}
+
+void create_taxis(int taxi_spawn_msq) {
+  int i, err;
+  Spawn req;
+
+  for (i = 0; i < SO_TAXI; i++) {
+    req.mtype = SPAWN;
+    req.mtext[0] = -1;
+    req.mtext[1] = -1;
+
+    err = msgsnd(taxi_spawn_msq, &req, sizeof req.mtext, 0);
+    DEBUG_RAISE_INT(err);
+  }
+}
+
+void set_sources(int city_id, int city_sems_op) {
+  int i;
+
+  for (i = 0; i < SO_SOURCES; i++) {
+    g_sources_positions[i] = generate_origin_point(city_id, city_sems_op);
+  }
+}
+
+void create_sources() {
+  pid_t pid;
+  int i;
+
+  for (i = 0; i < SO_SOURCES; i++) {
+    pid = fork();
+
+    DEBUG_RAISE_INT(pid);
+
+    if (pid == 0) {
+      create_source();
+    } else {
+      g_source_pids[i] = pid;
+    }
+  }
+}
+
+void start_timer() {
+  pid_t timer_pid = fork();
+  char *args[2] = {"master_timer", NULL};
+  int err;
+
+  DEBUG_RAISE_INT(timer_pid);
+
+  if (timer_pid == 0) {
+    err = execve(args[0], args, environ);
+
+    if (err == -1) {
+      DEBUG;
+      kill(getppid(), SIGINT);
+      exit(EXIT_FAILURE);
+    }
+  }
+}
+
+void print_city(int city_id) {
+  City city = shmat(city_id, NULL, 0);
+  int i, taxi_num;
+
+  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++) {
+    if (i % SO_WIDTH == 0) {
+      printf("\n");
+    } else {
+      if (city[i].type == CELL_HOLE) {
+        printf("x ");
+      } else {
+        taxi_num = city[i].capacity - city[i].act_capacity;
+
+        if (taxi_num == 0) {
+          printf(". ");
+        } else {
+          printf("%d ", taxi_num);
+        }
+      }
+    }
+  }
+
+  printf("\n\n");
+  shmdt(city);
+}
+
+int sem_wait_zero(int sem_arr, int sem, short flag) {
+  return sem_op(sem_arr, sem, 0, flag);
+}
+
+int sem_increase(int sem_arr, int sem, int value, short flag) {
+  return sem_op(sem_arr, sem, value, flag);
+}
+
+int sem_decrease(int sem_arr, int sem, int value, short flag) {
+  return sem_op(sem_arr, sem, value, flag);
+}
+
+void send_sources_origins() {
+  int origin_msq, i;
+
+  for (i = 0; i < SO_SOURCES; i++) {
+    origin_msq = msgget(g_source_pids[i], 0660);
+    send_source_origin(origin_msq, g_sources_positions[i]);
+  }
 }
 
 /*
 ====================================
-  PRIVATE
+  FUNZIONI "PRIVATE"
 ====================================
 */
 
-void create_taxi() {
-  char *args[2] = {"taxi", NULL};
-  int err = execve(args[0], args, environ);
+/* Pulisce la memoria dagli oggetti IPC usati e non solo */
+void clear_memory() {
+  int err = 0;
 
-  if (err == -1) {
+  err += shmctl(g_city_id, IPC_RMID, NULL);
+  err += semctl(g_sync_sems, -1, IPC_RMID);
+  err += semctl(g_city_sems_op, -1, IPC_RMID);
+  err += semctl(g_city_sems_cap, -1, IPC_RMID);
+  err += msgctl(g_taxi_info_msq, IPC_RMID, NULL);
+  err += msgctl(g_requests_msq, IPC_RMID, NULL);
+  err += msgctl(g_taxi_spawn_msq, IPC_RMID, NULL);
+
+  free(g_top_cells);
+  free(g_source_pids);
+
+  if (err < 0) {
     DEBUG;
-    raise(SIGINT);
+    exit(EXIT_FAILURE);
   }
 }
 
@@ -293,14 +429,176 @@ void create_taxi() {
 void master_handler(int signum) {
   int i;
 
-  if (signum == SIGINT) {
-    for (i = 0; i < SO_TAXI; i++) {
-      kill(g_taxi_pids[i], SIGINT);
+  switch (signum) {
+  case SIGINT:
+    if (g_taxigen_pid != -1) {
+      kill(g_taxigen_pid, SIGINT);
+    }
+
+    for (i = 0; i < SO_SOURCES; i++) {
+      if (g_source_pids[i] != -1) {
+        kill(g_source_pids[i], SIGINT);
+      }
     }
 
     clear_memory();
-    exit(EXIT_FAILURE);
+    exit(EXIT_ERROR);
+    break;
+  case SIGUSR1:
+    for (i = 0; i < SO_SOURCES; i++) {
+      kill(g_source_pids[i], SIGUSR1);
+    }
+    break;
+  case SIGUSR2:
+    kill(g_taxigen_pid, SIGUSR2);
+    for (i = 0; i < SO_SOURCES; i++) {
+      kill(g_source_pids[i], SIGUSR2);
+    }
+
+    sem_wait_zero(g_sync_sems, SEM_ALIVES_TAXI, 0);
+    update_stats();
+    print_stats();
+
+    clear_memory();
+    exit(EXIT_TIMER);
+    break;
+  default:
+    break;
   }
+}
+
+/* Stampa statistiche di partita */
+void print_stats() {
+  printf("\n------------------------------------\n");
+  printf("Viaggi totali: %d\n", g_travels);
+  printf("Taxi che:\n");
+  printf("- ha fatto più strada: %d\n", g_most_street.crossed_cells);
+  printf("- ha fatto il viaggio più lungo: %d\n",
+         g_most_long_travel.max_travel_time);
+  printf("- ha raccolto più richieste: %d\n", g_most_requests.requests);
+  printf("------------------------------------\n\n");
+}
+
+/* Aggiorna le statistiche della partita */
+void update_stats() {
+  TaxiInfo msg;
+  int err;
+
+  add_taxi_info_msq_end();
+  msg.mtype = 1;
+
+  while (msg.mtype == 1) {
+    err = msgrcv(g_taxi_info_msq, &msg, sizeof msg.mtext, 0, 0);
+    DEBUG_RAISE_INT(err);
+
+    if (msg.mtype == 1) {
+      g_travels += msg.mtext[2];
+      update_taxi_stats(msg.mtext);
+    }
+  }
+}
+
+/* Aggiorna le statistiche di un taxi */
+void update_taxi_stats(int taxi_msg[]) {
+  if (taxi_msg[0] > g_most_street.crossed_cells) {
+    copy_taxi_data(taxi_msg, &g_most_street);
+  }
+
+  if (taxi_msg[1] > g_most_long_travel.max_travel_time) {
+    copy_taxi_data(taxi_msg, &g_most_long_travel);
+  }
+
+  if (taxi_msg[2] > g_most_requests.requests) {
+    copy_taxi_data(taxi_msg, &g_most_requests);
+  }
+}
+
+/* Copia i dati di un taxi dal messaggio alla struct */
+void copy_taxi_data(int taxi_msg[], Taxi *taxi) {
+  taxi->crossed_cells = taxi_msg[0];
+  taxi->max_travel_time = taxi_msg[1];
+  taxi->requests = taxi_msg[2];
+}
+
+/*
+Aggiunge un messaggio di fine coda per consentire
+di leggerla tutta
+*/
+void add_taxi_info_msq_end() {
+  TaxiInfo info;
+  int err;
+
+  info.mtype = 2;
+  info.mtext[0] = 0;
+  info.mtext[1] = 0;
+  info.mtext[2] = 0;
+
+  err = msgsnd(g_taxi_info_msq, &info, sizeof info.mtext, 0);
+  DEBUG_RAISE_INT(err);
+}
+
+/* Invia l'origine alla sorgnete */
+void send_source_origin(int origin_msq, int origin) {
+  Origin msg;
+  int err;
+
+  msg.mtype = 1;
+  msg.mtext[0] = origin;
+  err = msgsnd(origin_msq, &msg, sizeof msg.mtext, 0);
+
+  DEBUG_RAISE_INT(err);
+}
+
+/* Genera un punto di origine per source sulla città */
+int generate_origin_point(int city_id, int city_sems_op) {
+  City city = shmat(city_id, NULL, 0);
+  int pos = -1, done = FALSE;
+
+  while (!done) {
+    pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
+
+    if (sem_decrease(city_sems_op, pos, -1, IPC_NOWAIT) == 0) {
+      if (city[pos].type == CELL_NORMAL) {
+        city[pos].type = CELL_SOURCE;
+      }
+
+      sem_increase(city_sems_op, pos, 1, 0);
+      done = TRUE;
+    }
+  }
+
+  shmdt(city);
+  return pos;
+}
+
+/* Crea un processo sorgente */
+void create_source() {
+  char *args[2] = {"source", NULL};
+  int err;
+
+  err = execve(args[0], args, environ);
+
+  if (err == -1) {
+    DEBUG;
+    kill(getppid(), SIGINT);
+    exit(EXIT_ERROR);
+  }
+}
+
+/* Un wrapper di semop */
+int sem_op(int sem_arr, int sem, int value, short flag) {
+  struct sembuf op[1];
+  int err;
+
+  op[0].sem_flg = flag;
+  op[0].sem_num = sem;
+  op[0].sem_op = value;
+
+  err = semop(sem_arr, op, 1);
+
+  DEBUG_RAISE_INT(err);
+
+  return err;
 }
 
 /* Conversione indice -> punto */
@@ -316,12 +614,7 @@ Point index2point(int index) {
 /* Conversione punto -> indice */
 int point2index(Point p) { return SO_WIDTH * p.y + p.x; }
 
-/*
-Genera una lista dei punti adiacenti a p
-x x x
-x . x
-x x x
-*/
+/* Genera una lista dei punti intorno a p */
 void generate_adjacent_list(Point p, int list[]) {
   Point tmp;
   int dx, dy;
@@ -342,16 +635,16 @@ void generate_adjacent_list(Point p, int list[]) {
 
 /* Verifica che p sia un punto valido per una buca */
 int is_valid_hole_point(Point p, City city) {
-  int list[ADJACENT_CELLS];
+  int list[ADJACENT_CELLS_NUM];
   int i, is_valid = TRUE;
   int pos;
 
   generate_adjacent_list(p, list);
 
   for (i = 0; i < 8; i++) {
-    pos = list[i];
+    pos = list[i]; /* per chiarezza */
 
-    if (pos > -1 && pos < SO_WIDTH * SO_HEIGHT) {
+    if (pos >= 0 && pos < SO_WIDTH * SO_HEIGHT) {
       is_valid = is_valid && city[pos].type != CELL_HOLE;
     }
   }
@@ -361,12 +654,14 @@ int is_valid_hole_point(Point p, City city) {
 
 /* Posiziona una buca in pos */
 void place_hole(int pos, City city) {
-  city[pos].capacity = 0;
-  city[pos].cross_time = 0;
+  city[pos].capacity = -1;
+  city[pos].cross_time = -1;
   city[pos].type = CELL_HOLE;
+  city[pos].crossing_num = -1;
+  city[pos].act_capacity = -1;
 }
 
-/* Genera un numero random fra [min, max] */
+/* Genera un numero random fra [min, max], se min == max ritorna min */
 int rand_int(int min, int max) {
   if (min == max) {
     return min;
@@ -375,11 +670,9 @@ int rand_int(int min, int max) {
   }
 }
 
-/* Inizializza una cella normale */
-void init_cell(Cell c) {
-  srand(time(NULL));
-
-  c.type = CELL_NORMAL;
-  c.capacity = rand_int(SO_CAP_MIN, SO_CAP_MAX);
-  c.cross_time = rand_int(SO_TIMENSEC_MIN, SO_TIMENSEC_MAX);
+/* Inizializza una struct taxi */
+void init_taxi(Taxi *taxi) {
+  taxi->crossed_cells = -1;
+  taxi->max_travel_time = -1;
+  taxi->requests = -1;
 }

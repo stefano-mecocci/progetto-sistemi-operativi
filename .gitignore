@@ -2,5 +2,10 @@
 .vscode/
 
 # executables
-main
+master
 taxi
+taxigen
+source
+
+# test files
+test.c
