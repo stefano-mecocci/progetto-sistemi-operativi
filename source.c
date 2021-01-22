@@ -2,7 +2,6 @@
 
 #include "source.h"
 #include "data_structures.h"
-#include "global_variables.h"
 #include "params.h"
 #include "utils.h"
 #include <errno.h>
@@ -74,17 +73,6 @@ void set_handler()
 int sem_decrease(int sem_arr, int sem, int value, short flag)
 {
   return sem_op(sem_arr, sem, value, flag);
-}
-
-int read_id_from_file(char *filename)
-{
-  FILE *f = fopen(filename, "r");
-  int id;
-
-  fscanf(f, "%d", &id);
-  fclose(f);
-
-  return id;
 }
 
 void generate_taxi_request(Request *req)
@@ -203,7 +191,7 @@ pid_t find_nearest_taxi_pid()
   int min_distance = SO_WIDTH + SO_HEIGHT;
   int i = 0;
   pid_t pid = 0;
-  TaxiPosition taxi;
+  TaxiStatus taxi;
   while (i < SO_TAXI && min_distance != 0)
   {
     taxi = g_taxi_positions[i];
@@ -220,6 +208,7 @@ pid_t find_nearest_taxi_pid()
   
   if(pid == 0){
     /* raise error - no available taxi found */
+    return -1;
   }
 
   return pid;

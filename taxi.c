@@ -48,16 +48,6 @@ void send_taxi_data();
 ====================================
 */
 
-int read_id_from_file(char *filename) {
-  FILE *f = fopen(filename, "r");
-  int id;
-
-  fscanf(f, "%d", &id);
-  fclose(f);
-
-  return id;
-}
-
 void set_handler() {
   struct sigaction act;
   bzero(&act, sizeof act);

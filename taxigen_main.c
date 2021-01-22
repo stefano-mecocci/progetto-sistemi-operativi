@@ -3,6 +3,7 @@
 #include "data_structures.h"
 #include "params.h"
 #include "taxigen.h"
+#include "utils.h"
 
 #include <errno.h>
 #include <signal.h>
@@ -19,6 +20,7 @@
 
 int main() {
   int taxi_spawn_msq = read_id_from_file("taxi_spawn_msq");
+  int taxi_info_msq_id = read_id_from_file("taxi_info_msq");
   int sync_sems = read_id_from_file("sync_sems");
   int city_id = read_id_from_file("city_id");
   int city_sems_cap = read_id_from_file("city_sems_cap");
@@ -48,8 +50,10 @@ int main() {
 
     if (req.mtype == RESPAWN) {
       replace_taxi_pid(req.mtext[0], taxi_pid);
+      // add message in taxi info queue
     } else {
       add_taxi_pid(taxi_pid);
+      // add message in taxi info queue
     }
   }
 

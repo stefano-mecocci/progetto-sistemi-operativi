@@ -1,22 +1,9 @@
-#define _GNU_SOURCE
-
 #include "data_structures.h"
 #include "source.h"
+#include "utils.h"
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-int sleep_for(int secs, int nanosecs) {
-  struct timespec t;
-  int err;
-
-  t.tv_sec = secs;
-  t.tv_nsec = nanosecs;
-
-  err = nanosleep(&t, NULL);
-
-  return err;
-}
 
 int main(int argc, char const *argv[]) {
   int sync_sems = read_id_from_file("sync_sems");

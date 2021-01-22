@@ -3,6 +3,7 @@
 #include "data_structures.h"
 #include "params.h"
 #include "taxi.h"
+#include "utils.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>

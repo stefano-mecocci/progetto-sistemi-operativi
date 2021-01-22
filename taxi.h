@@ -4,9 +4,6 @@
 #include <sys/types.h>
 #include "data_structures.h"
 
-/* Legge l'id di una risorsa IPC da un file */
-int read_id_from_file(char * filename);
-
 /* Imposta il signal handler di taxi */
 void set_handler();
 

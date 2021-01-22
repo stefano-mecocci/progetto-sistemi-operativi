@@ -3,7 +3,6 @@
 #include "taxigen.h"
 #include "data_structures.h"
 #include "params.h"
-#include "global_variables.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -47,16 +46,6 @@ int sem_op(int sem_arr, int sem, int value, short flag);
 
 int x = 0;
 
-int read_id_from_file(char *filename) {
-  FILE *f = fopen(filename, "r");
-  int id;
-
-  fscanf(f, "%d", &id);
-  fclose(f);
-
-  return id;
-}
-
 void set_handler() {
   struct sigaction act;
   bzero(&act, sizeof act);
@@ -72,7 +61,6 @@ void init_data() {
   int i;
 
   g_taxi_pids = malloc(sizeof(pid_t) * TAXIPIDS_SIZE);
-  g_taxi_positions = malloc(sizeof(TaxiPosition) * TAXIPIDS_SIZE);
   for (i = 0; i < TAXIPIDS_SIZE; i++) {
     g_taxi_pids[i] = 0;
   }
@@ -161,6 +149,20 @@ void replace_taxi_pid(pid_t old_pid, pid_t new_pid) {
   int index = find_pid_index(old_pid, g_taxi_pids);
 
   g_taxi_pids[index] = new_pid;
+}
+
+void update_taxi_info(int msq_id) {
+  int i, err;
+  Spawn req;
+
+  for (i = 0; i < SO_TAXI; i++) {
+    req.mtype = SPAWN;
+    req.mtext[0] = -1;
+    req.mtext[1] = -1;
+
+    err = msgsnd(msq_id, &req, sizeof req.mtext, 0);
+    DEBUG_RAISE_INT(err);
+  }
 }
 
 /*
