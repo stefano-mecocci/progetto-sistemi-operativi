@@ -2,10 +2,7 @@
 .vscode/
 
 # executables
-master
-taxi
-taxigen
-source
+*.o
 
 # test files
 test.c

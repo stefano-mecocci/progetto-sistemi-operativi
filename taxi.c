@@ -90,7 +90,7 @@ int sem_decrease(int sem_arr, int sem, int value, short flag) {
 
 pid_t start_timer() {
   pid_t pid = fork();
-  char *args[2] = {"taxi_timer", NULL};
+  char *args[2] = {"taxi_timer.o", NULL};
   int err;
 
   DEBUG_RAISE_INT(pid);
@@ -106,6 +106,12 @@ pid_t start_timer() {
   } else {
     return pid;
   }
+}
+
+void receive_ride_request(int requests_msq, Request *req) {
+  int err;
+  err = msgrcv(requests_msq, req, sizeof req->mtext, getpid(), 0);
+  DEBUG_RAISE_INT(err);
 }
 
 /*

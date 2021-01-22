@@ -48,6 +48,13 @@ typedef struct taxi {
   int requests;
 } Taxi;
 
+/* Represents the tuple <taxi process id, taxi availability, taxi current position > */
+typedef struct taxi_position {
+  pid_t pid;
+  enum Bool available;
+  int position;
+} TaxiPosition;
+
 /*
 Messaggio di richiesta taxi:
 - mtext == Taxi
@@ -64,8 +71,8 @@ Messaggio di richiesta taxi:
 - mtext indica punti di origine e destinazione [origin, destination] 
 */
 typedef struct request {
-  long mtype;
-  int mtext[REQ_SIZE];
+  long mtype; /* se usassimo mtype come identificatore di taxi pid? */
+  int mtext[REQ_SIZE]; 
 } Request;
 
 /*

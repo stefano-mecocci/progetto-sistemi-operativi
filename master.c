@@ -3,6 +3,7 @@
 #include "master.h"
 #include "data_structures.h"
 #include "params.h"
+#include "utils.h"
 
 #include <errno.h>
 #include <signal.h>
@@ -58,8 +59,6 @@ void init_taxi(Taxi *taxi);
 void master_handler(int signum);
 void clear_memory();
 int rand_int(int min, int max);
-Point index2point(int index);
-int point2index(Point p);
 void generate_adjacent_list(Point p, int list[]);
 int is_valid_hole_point(Point p, City city);
 void place_hole(int pos, City city);
@@ -277,11 +276,10 @@ void place_city_holes(int city_id) {
 
 void create_taxigen() {
   pid_t pid = fork();
-  char *args[2] = {"taxigen", NULL};
+  char *args[2] = {"taxigen.o", NULL};
   int err;
 
   DEBUG_RAISE_INT(pid);
-
   if (pid == 0) {
     err = execve(args[0], args, environ);
 
@@ -335,7 +333,7 @@ void create_sources() {
 
 void start_timer() {
   pid_t timer_pid = fork();
-  char *args[2] = {"master_timer", NULL};
+  char *args[2] = {"master_timer.o", NULL};
   int err;
 
   DEBUG_RAISE_INT(timer_pid);
@@ -573,9 +571,8 @@ int generate_origin_point(int city_id, int city_sems_op) {
 
 /* Crea un processo sorgente */
 void create_source() {
-  char *args[2] = {"source", NULL};
+  char *args[2] = {"source.o", NULL};
   int err;
-
   err = execve(args[0], args, environ);
 
   if (err == -1) {
@@ -601,18 +598,6 @@ int sem_op(int sem_arr, int sem, int value, short flag) {
   return err;
 }
 
-/* Conversione indice -> punto */
-Point index2point(int index) {
-  Point p;
-
-  p.x = index % SO_WIDTH;
-  p.y = index / SO_WIDTH;
-
-  return p;
-}
-
-/* Conversione punto -> indice */
-int point2index(Point p) { return SO_WIDTH * p.y + p.x; }
 
 /* Genera una lista dei punti intorno a p */
 void generate_adjacent_list(Point p, int list[]) {
@@ -641,6 +626,7 @@ int is_valid_hole_point(Point p, City city) {
 
   generate_adjacent_list(p, list);
 
+/*TODO: use while(is_valid && i < 8) */
   for (i = 0; i < 8; i++) {
     pos = list[i]; /* per chiarezza */
 

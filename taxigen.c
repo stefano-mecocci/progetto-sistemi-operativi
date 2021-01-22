@@ -3,6 +3,7 @@
 #include "taxigen.h"
 #include "data_structures.h"
 #include "params.h"
+#include "global_variables.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -71,6 +72,7 @@ void init_data() {
   int i;
 
   g_taxi_pids = malloc(sizeof(pid_t) * TAXIPIDS_SIZE);
+  g_taxi_positions = malloc(sizeof(TaxiPosition) * TAXIPIDS_SIZE);
   for (i = 0; i < TAXIPIDS_SIZE; i++) {
     g_taxi_pids[i] = 0;
   }
@@ -130,7 +132,7 @@ int set_taxi(int city_id, int city_sems_op, int city_sems_cap) {
 }
 
 pid_t create_taxi(int pos, int isNew) {
-  char *args[5] = {"taxi", NULL, NULL, NULL, NULL};
+  char *args[5] = {"taxi.o", NULL, NULL, NULL, NULL};
   pid_t pid = fork();
   int err;
 
