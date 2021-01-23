@@ -30,6 +30,12 @@ extern int create_taxi_availability_list();
 /* Creates the taxi availability list semaphore for shared memory access */
 extern int create_taxi_availability_list_sem();
 
+/* Initialize taxi availability list in shared memory */
+extern void init_taxi_availability_list();
+
+/* Initialize the taxi availability list semaphore for shared memory access */
+extern void init_taxi_availability_list_sem();
+
 /* Controlla i parametri */
 extern void check_params();
 
@@ -66,15 +72,6 @@ extern void create_taxis(int taxi_spawn_msq);
 
 /* Avvio il timer di master di SO_DURATION secondi */
 extern void start_timer();
-
-/* Aspetta che sem sia 0 */
-extern int sem_wait_zero(int sem_arr, int sem, short flag);
-
-/* AUTOESPLICATIVO */
-extern int sem_increase(int sem_arr, int sem, int value, short flag);
-
-/* AUTOESPLICATIVO */
-extern int sem_decrease(int sem_arr, int sem, int value, short flag);
 
 /* Crea i processi sorgente */
 extern void create_sources();

@@ -47,14 +47,16 @@ int main() {
   init_sync_sems(sync_sems);
   init_city_sems_op(city_sems_op);
   init_city_sems_cap(city_id, city_sems_cap);
+  init_taxi_availability_list();
+  init_taxi_availability_list_sem();
 
   create_taxigen();
   create_taxis(taxi_spawn_msq);
-  sem_wait_zero(sync_sems, SEM_SYNC_TAXI, 0);
+  sem_op(sync_sems, SEM_SYNC_TAXI, 0, 0);
 
   set_sources(city_id, city_sems_op);
   create_sources();
-  sem_wait_zero(sync_sems, SEM_SYNC_SOURCES, 0);
+  sem_op(sync_sems, SEM_SYNC_SOURCES, 0, 0);
   send_sources_origins();
   
   start_timer();

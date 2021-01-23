@@ -13,9 +13,6 @@ void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems);
 /* Inizializza altri dati globali */
 void init_data(int master_pid, int pos);
 
-/* AUTOESPLICATIVO */
-int sem_decrease(int sem_arr, int sem, int value, short flag);
-
 /* Avvia il timer di SO_TIMEOUT */
 pid_t start_timer();
 

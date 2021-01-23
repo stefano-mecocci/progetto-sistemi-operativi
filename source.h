@@ -6,9 +6,6 @@
 /* coda dove ricevere origine */
 int create_origin_msq();
 
-/* Rimuovi value dal semaforo sem in sem_arr */
-int sem_decrease(int sem_arr, int sem, int value, short flag);
-
 /* Imposta il signal handler di source */
 void set_handler();
 

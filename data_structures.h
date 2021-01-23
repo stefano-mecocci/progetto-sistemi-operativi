@@ -66,7 +66,7 @@ typedef struct taxi_status
 
 enum TaxiOps
 {
-  SPAWN,
+  SPAWNED,
   PICKUP,
   BASICMOV,
   SERVED,

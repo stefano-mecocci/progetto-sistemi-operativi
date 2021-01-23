@@ -36,7 +36,6 @@ Taxi g_data;
 int g_pos;
 
 void taxi_handler(int signum);
-int sem_op(int sem_arr, int sem, int value, short flag);
 void send_spawn_request();
 void block_signal(int signum);
 void unblock_signal(int signum);
@@ -72,10 +71,6 @@ void init_data(int master_pid, int pos) {
   g_data.crossed_cells = 1;
   g_data.max_travel_time = 2;
   g_data.requests = 3;
-}
-
-int sem_decrease(int sem_arr, int sem, int value, short flag) {
-  return sem_op(sem_arr, sem, value, flag);
 }
 
 pid_t start_timer() {
@@ -145,7 +140,7 @@ void taxi_handler(int signum) {
     exit(EXIT_ERROR);
   } else if (signum == SIGUSR2) {
     send_taxi_data();
-    sem_decrease(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
+    sem_op(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
 
     exit(EXIT_TIMER);
   } else if (signum == SIGUSR1) {
@@ -153,7 +148,7 @@ void taxi_handler(int signum) {
 
     send_taxi_data();
     send_spawn_request();
-    sem_decrease(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
+    sem_op(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
 
     unblock_signal(SIGUSR2);
     exit(EXIT_TIMER);
@@ -171,19 +166,4 @@ void send_spawn_request() {
 
   err = msgsnd(g_taxi_spawn_msq, &req, sizeof req.mtext, 0);
   DEBUG_RAISE_INT(err);
-}
-
-/* Un wrapper di semop */
-int sem_op(int sem_arr, int sem, int value, short flag) {
-  struct sembuf op[1];
-  int err;
-
-  op[0].sem_flg = flag;
-  op[0].sem_num = sem;
-  op[0].sem_op = value;
-
-  err = semop(sem_arr, op, 1);
-  DEBUG_RAISE_INT(err);
-
-  return err;
 }

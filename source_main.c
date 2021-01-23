@@ -14,7 +14,7 @@ int main(int argc, char const *argv[]) {
 
   set_handler();
   init_data(requests_msq, city_id);
-  sem_decrease(sync_sems, SEM_SYNC_SOURCES, -1, 0);
+  sem_op(sync_sems, SEM_SYNC_SOURCES, -1, 0);
   save_source_position(origin_msq);
 
   while (TRUE) {

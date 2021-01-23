@@ -63,11 +63,9 @@ Taxi g_most_requests;    /* Taxi che ha raccolto più richieste */
 void init_taxi(Taxi *taxi);
 void master_handler(int signum);
 void clear_memory();
-int rand_int(int min, int max);
 void generate_adjacent_list(Point p, int list[]);
 int is_valid_hole_point(Point p, City city);
 void place_hole(int pos, City city);
-int sem_op(int sem_arr, int sem, int value, short flag);
 void create_source();
 int generate_origin_point(int, int);
 void send_source_origin(int origin_msq, int origin);
@@ -168,6 +166,20 @@ int create_taxi_availability_list()
   return id;
 }
 
+void init_taxi_availability_list(){
+  TaxiStatus *taxi = shmat(g_taxi_list_id, NULL, 0);
+  int i;
+
+  for (i = 0; i < SO_TAXI; i++)
+  {
+    taxi[i].pid = -1;
+    taxi[i].available = FALSE;
+    taxi[i].position = -1;
+  }
+
+  shmdt(taxi);
+}
+
 int create_taxi_availability_list_sem()
 {
   int nsems = 1;
@@ -177,6 +189,11 @@ int create_taxi_availability_list_sem()
   DEBUG_RAISE_INT(id);
 
   return id;
+}
+
+void init_taxi_availability_list_sem()
+{    
+    semctl(g_taxi_list_sem, 0, SETVAL, 1);
 }
 
 void check_params()
@@ -469,21 +486,6 @@ void print_city(int city_id)
   shmdt(city);
 }
 
-int sem_wait_zero(int sem_arr, int sem, short flag)
-{
-  return sem_op(sem_arr, sem, 0, flag);
-}
-
-int sem_increase(int sem_arr, int sem, int value, short flag)
-{
-  return sem_op(sem_arr, sem, value, flag);
-}
-
-int sem_decrease(int sem_arr, int sem, int value, short flag)
-{
-  return sem_op(sem_arr, sem, value, flag);
-}
-
 void send_sources_origins()
 {
   int origin_msq, i;
@@ -513,6 +515,8 @@ void clear_memory()
   err += msgctl(g_taxi_info_msq, IPC_RMID, NULL);
   err += msgctl(g_requests_msq, IPC_RMID, NULL);
   err += msgctl(g_taxi_spawn_msq, IPC_RMID, NULL);
+  err += shmctl(g_taxi_list_id, IPC_RMID, NULL);
+  err += semctl(g_taxi_list_sem, -1, IPC_RMID);
 
   free(g_top_cells);
   free(g_source_pids);
@@ -561,7 +565,7 @@ void master_handler(int signum)
       kill(g_source_pids[i], SIGUSR2);
     }
 
-    sem_wait_zero(g_sync_sems, SEM_ALIVES_TAXI, 0);
+    sem_op(g_sync_sems, SEM_ALIVES_TAXI, 0, 0);
     update_stats();
     print_stats();
 
@@ -683,14 +687,14 @@ int generate_origin_point(int city_id, int city_sems_op)
   {
     pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
 
-    if (sem_decrease(city_sems_op, pos, -1, IPC_NOWAIT) == 0)
+    if (sem_op(city_sems_op, pos, -1, IPC_NOWAIT) == 0)
     {
       if (city[pos].type == CELL_NORMAL)
       {
         city[pos].type = CELL_SOURCE;
       }
 
-      sem_increase(city_sems_op, pos, 1, 0);
+      sem_op(city_sems_op, pos, 1, 0);
       done = TRUE;
     }
   }
@@ -712,23 +716,6 @@ void create_source()
     kill(getppid(), SIGINT);
     exit(EXIT_ERROR);
   }
-}
-
-/* Un wrapper di semop */
-int sem_op(int sem_arr, int sem, int value, short flag)
-{
-  struct sembuf op[1];
-  int err;
-
-  op[0].sem_flg = flag;
-  op[0].sem_num = sem;
-  op[0].sem_op = value;
-
-  err = semop(sem_arr, op, 1);
-
-  DEBUG_RAISE_INT(err);
-
-  return err;
 }
 
 /* Genera una lista dei punti intorno a p */
@@ -785,19 +772,6 @@ void place_hole(int pos, City city)
   city[pos].type = CELL_HOLE;
   city[pos].crossing_num = -1;
   city[pos].act_capacity = -1;
-}
-
-/* Genera un numero random fra [min, max], se min == max ritorna min */
-int rand_int(int min, int max)
-{
-  if (min == max)
-  {
-    return min;
-  }
-  else
-  {
-    return (rand() % (max - min + 1)) + min;
-  }
 }
 
 /* Inizializza una struct taxi */

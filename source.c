@@ -32,9 +32,6 @@ int g_origin_msq;
 
 void source_handler(int signum);
 int generate_valid_pos();
-int rand_int(int min, int max);
-int sem_op(int sem_arr, int sem, int value, short flag);
-
 /*
 ====================================
   PUBLIC
@@ -68,11 +65,6 @@ void set_handler()
   sigaction(SIGINT, &act, NULL);
   sigaction(SIGUSR2, &act, NULL);
   sigaction(SIGUSR1, &act, NULL);
-}
-
-int sem_decrease(int sem_arr, int sem, int value, short flag)
-{
-  return sem_op(sem_arr, sem, value, flag);
 }
 
 void generate_taxi_request(Request *req)
@@ -134,34 +126,6 @@ void source_handler(int signum)
 
   default:
     break;
-  }
-}
-
-int sem_op(int sem_arr, int sem, int value, short flag)
-{
-  struct sembuf sops[1];
-  int err;
-
-  sops[0].sem_flg = flag;
-  sops[0].sem_num = sem;
-  sops[0].sem_op = value;
-
-  err = semop(sem_arr, sops, 1);
-  DEBUG_RAISE_INT(err);
-
-  return err;
-}
-
-/* Genera un numero random fra [min, max], se min == max ritorna min */
-int rand_int(int min, int max)
-{
-  if (min == max)
-  {
-    return min;
-  }
-  else
-  {
-    return (rand() % (max - min + 1)) + min;
   }
 }
 

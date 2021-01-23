@@ -22,3 +22,11 @@ extern int read_id_from_file(char *filename);
 extern  void write_id_to_file(int id, char * filename);
 
 extern int sleep_for(int secs, int nanosecs);
+
+extern int sem_op(int sem_arr, int sem, int value, short flag);
+
+/* Genera un numero random fra [min, max], se min == max ritorna min */
+extern int rand_int(int min, int max);
+
+/* Enqueues taxi status update */
+extern int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status);

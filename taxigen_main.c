@@ -25,8 +25,9 @@ int main() {
   int city_id = read_id_from_file("city_id");
   int city_sems_cap = read_id_from_file("city_sems_cap");
   int city_sems_op = read_id_from_file("city_sems_op");
-  int pos;
+  int pos, err;
   Spawn req;
+  TaxiStatus status;
   pid_t taxi_pid;
 
   set_handler();
@@ -34,7 +35,7 @@ int main() {
 
   while (TRUE) {
     receive_spawn_request(taxi_spawn_msq, &req);
-    sem_increase(sync_sems, SEM_ALIVES_TAXI, 1, 0);
+    sem_op(sync_sems, SEM_ALIVES_TAXI, 1, 0);
 
     if (req.mtype == RESPAWN) {
       remove_old_taxi(city_id, city_sems_op, city_sems_cap, req.mtext[1]);
@@ -48,12 +49,15 @@ int main() {
       taxi_pid = create_taxi(pos, FALSE);
     }
 
+    status.pid = taxi_pid;
+    status.position = pos;
+    err = send_taxi_update(taxi_info_msq_id, SPAWNED, status);
+    DEBUG_RAISE_INT(err);
+
     if (req.mtype == RESPAWN) {
       replace_taxi_pid(req.mtext[0], taxi_pid);
-      // add message in taxi info queue
     } else {
       add_taxi_pid(taxi_pid);
-      // add message in taxi info queue
     }
   }
 

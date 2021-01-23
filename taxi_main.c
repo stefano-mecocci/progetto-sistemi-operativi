@@ -33,7 +33,7 @@ int main(int argc, char const *argv[]) {
   set_handler();
 
   if (atoi(argv[1]) == FALSE) {
-    sem_decrease(sync_sems, SEM_SYNC_TAXI, -1, IPC_NOWAIT);
+    sem_op(sync_sems, SEM_SYNC_TAXI, -1, IPC_NOWAIT);
   }
 
   timer_pid = start_timer();

@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include "params.h"
 #include "data_structures.h"
 #include "utils.h"
@@ -15,13 +13,14 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
-int taxi_list_mem_id, taxi_info_msq_id, taxi_request_msq_id;
+int taxi_list_mem_id, taxi_info_msq_id, taxi_request_msq_id, taxi_list_sem_id;
 
 int main(int argc, char const *argv[])
 {
     taxi_list_mem_id = read_id_from_file("taxi_list_id");
+    taxi_list_mem_id = read_id_from_file("taxi_list_id");
     taxi_info_msq_id = read_id_from_file("taxi_info_msq");
-    taxi_request_msq_id = read_id_from_file("requests_msq");
+    taxi_list_sem_id = read_id_from_file("taxi_list_sem_id");
     while (TRUE)
     {
         update_taxi_status();
@@ -50,14 +49,19 @@ void update_taxi_availability_list(TaxiActionMsg update)
     int index = 0;
     while (current == NULL && index < SO_TAXI)
     {
-        if (taxis[index].pid == update.mtext.pid)
+        if (update.mtype == SPAWNED || taxis[index].pid == update.mtext.pid)
         {
-            current = taxis[index].pid;
+            current = &(taxis[index].pid);
         }
-        index++;
+        else
+        {
+            index++;
+        }
     }
 
-    if (update.mtype == SPAWN)
+    /* Access the resource */
+    sem_op(taxi_list_sem_id, 1, -1, 0);
+    if (update.mtype == SPAWNED)
     {
         taxis[index].pid = update.mtext.pid;
         taxis[index].available = TRUE;
@@ -93,6 +97,8 @@ void update_taxi_availability_list(TaxiActionMsg update)
     {
         /* taxi operation out of known range */
     }
+    /* Release the resource */
+    sem_op(taxi_list_sem_id, 1, 1, 0);
 
     shmdt(taxis);
 }
