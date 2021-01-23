@@ -148,14 +148,12 @@ void taxi_handler(int signum) {
   if (signum == SIGINT) {
     exit(EXIT_ERROR);
   } else if (signum == SIGUSR2) {
-    send_taxi_data();
     sem_decrease(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
-
+    
     exit(EXIT_TIMER);
   } else if (signum == SIGUSR1) {
     block_signal(SIGUSR2);
 
-    send_taxi_data();
     send_spawn_request();
     sem_decrease(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
 
