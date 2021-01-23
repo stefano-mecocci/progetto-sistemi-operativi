@@ -19,22 +19,6 @@
 #include <unistd.h>
 
 #define ADJACENT_CELLS_NUM 8
-#define DEBUG \
-  printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
-
-#define DEBUG_RAISE_INT(err) \
-  if (err < 0)               \
-  {                          \
-    DEBUG;                   \
-    raise(SIGINT);           \
-  }
-
-#define DEBUG_RAISE_ADDR(addr) \
-  if (addr == NULL)            \
-  {                            \
-    DEBUG;                     \
-    raise(SIGINT);             \
-  }
 
 /* OGGETTI IPC */
 int g_city_id;        /* città */
@@ -138,9 +122,9 @@ int create_requests_msq()
 int create_taxi_info_msq()
 {
   int id = msgget(IPC_PRIVATE, 0660 | IPC_CREAT);
+  DEBUG_RAISE_INT(id);
   g_taxi_info_msq = id;
 
-  DEBUG_RAISE_INT(id);
 
   return id;
 }
@@ -166,7 +150,8 @@ int create_taxi_availability_list()
   return id;
 }
 
-void init_taxi_availability_list(){
+void init_taxi_availability_list()
+{
   TaxiStatus *taxi = shmat(g_taxi_list_id, NULL, 0);
   int i;
 
@@ -192,8 +177,8 @@ int create_taxi_availability_list_sem()
 }
 
 void init_taxi_availability_list_sem()
-{    
-    semctl(g_taxi_list_sem, 0, SETVAL, 1);
+{
+  semctl(g_taxi_list_sem, 0, SETVAL, 1);
 }
 
 void check_params()
@@ -448,7 +433,6 @@ void start_change_detector()
   }
 }
 
-
 void print_city(int city_id)
 {
   City city = shmat(city_id, NULL, 0);
@@ -531,7 +515,7 @@ void clear_memory()
 /* Signal handler del processo master */
 void master_handler(int signum)
 {
-  int i;
+  int i, err;
 
   switch (signum)
   {
@@ -565,7 +549,9 @@ void master_handler(int signum)
       kill(g_source_pids[i], SIGUSR2);
     }
 
-    sem_op(g_sync_sems, SEM_ALIVES_TAXI, 0, 0);
+    err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, 0, 0);
+    DEBUG_RAISE_INT(err);
+
     update_stats();
     print_stats();
 
@@ -596,7 +582,7 @@ void update_stats()
   TaxiInfo msg;
   int err;
 
-/* TOCHECK propose alternative way to check for new msgs
+  /* TOCHECK propose alternative way to check for new msgs
   while(errno != ENOMSG){
     err = msgrcv(g_taxi_info_msq, &msg, sizeof msg.mtext, 0, IPC_NOWAIT);
     DEBUG_RAISE_INT(err);
@@ -681,23 +667,27 @@ void send_source_origin(int origin_msq, int origin)
 int generate_origin_point(int city_id, int city_sems_op)
 {
   City city = shmat(city_id, NULL, 0);
-  int pos = -1, done = FALSE;
+  int pos = -1, done = FALSE, err;
 
   while (!done)
   {
     pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
 
-    if (sem_op(city_sems_op, pos, -1, IPC_NOWAIT) == 0)
+    if (city[pos].type == CELL_NORMAL)
     {
-      if (city[pos].type == CELL_NORMAL)
-      {
-        city[pos].type = CELL_SOURCE;
-      }
-
-      sem_op(city_sems_op, pos, 1, 0);
       done = TRUE;
     }
   }
+
+  /* Access the resource */
+  err = sem_op(city_sems_op, pos, -1, 0);
+  DEBUG_RAISE_INT(err);
+  
+  city[pos].type = CELL_SOURCE;
+  
+  /* Release the resource */
+  err = sem_op(city_sems_op, pos, 1, 0);
+  DEBUG_RAISE_INT(err);
 
   shmdt(city);
   return pos;

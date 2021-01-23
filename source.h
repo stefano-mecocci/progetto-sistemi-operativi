@@ -10,7 +10,7 @@ int create_origin_msq();
 void set_handler();
 
 /* Inizializza var. globali di source */
-void init_data(int requests_msq, int city_id);
+void init_data(int requests_msq, int city_id, int taxi_list_mem_id);
 
 void generate_taxi_request(Request * req);
 

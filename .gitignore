@@ -4,5 +4,11 @@
 # executables
 *.o
 
+#ipc file id
+*_id
+*_msq
+*sems
+
+
 # test files
 test.c

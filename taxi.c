@@ -3,6 +3,8 @@
 #include "taxi.h"
 #include "data_structures.h"
 #include "params.h"
+#include "utils.h"
+
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -17,15 +19,6 @@
 #include <unistd.h>
 
 #define TAXIPIDS_SIZE (SO_TAXI + 1)
-#define DEBUG                                                                  \
-  printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
-
-#define DEBUG_RAISE_INT(err)                                                   \
-  if (err < 0) {                                                               \
-    DEBUG;                                                                     \
-    kill(g_master_pid, SIGINT);                                                   \
-    raise(SIGINT);                                                             \
-  }
 
 int g_taxi_spawn_msq;
 int g_taxi_info_msq;
@@ -96,7 +89,7 @@ pid_t start_timer() {
 void receive_ride_request(int requests_msq, Request *req) {
   int err;
   err = msgrcv(requests_msq, req, sizeof req->mtext, getpid(), 0);
-  DEBUG_RAISE_INT(err);
+  DEBUG_RAISE_INT(g_master_pid, err);
 }
 
 /*
@@ -116,7 +109,7 @@ void send_taxi_data() {
   info.mtext[2] = g_data.requests;
 
   err = msgsnd(g_taxi_info_msq, &info, sizeof info.mtext, 0);
-  DEBUG_RAISE_INT(err);
+  DEBUG_RAISE_INT(g_master_pid, err);
 }
 
 void block_signal(int signum) {
@@ -134,13 +127,14 @@ void unblock_signal(int signum) {
 }
 
 void taxi_handler(int signum) {
-  int i;
+  int i, err;
 
   if (signum == SIGINT) {
     exit(EXIT_ERROR);
   } else if (signum == SIGUSR2) {
     send_taxi_data();
-    sem_op(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
+    err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
+    DEBUG_RAISE_INT(g_master_pid, err);
 
     exit(EXIT_TIMER);
   } else if (signum == SIGUSR1) {
@@ -148,7 +142,8 @@ void taxi_handler(int signum) {
 
     send_taxi_data();
     send_spawn_request();
-    sem_op(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
+    err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
+    DEBUG_RAISE_INT(g_master_pid, err);
 
     unblock_signal(SIGUSR2);
     exit(EXIT_TIMER);
@@ -165,5 +160,5 @@ void send_spawn_request() {
   req.mtext[1] = g_pos;
 
   err = msgsnd(g_taxi_spawn_msq, &req, sizeof req.mtext, 0);
-  DEBUG_RAISE_INT(err);
+  DEBUG_RAISE_INT(g_master_pid, err);
 }

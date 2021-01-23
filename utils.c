@@ -104,6 +104,5 @@ int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status)
 
   msg.mtype = op;
   msg.mtext = status;
-
   return msgsnd(queue_id, &msg, sizeof(TaxiActionMsg), 0);
 }

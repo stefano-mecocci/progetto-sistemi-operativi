@@ -3,6 +3,30 @@
 #define DEBUG \
   printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
 
+#define GET_MACRO(_1,_2,NAME,...) NAME
+#define DEBUG_RAISE_INT(...) GET_MACRO(__VA_ARGS__, DEBUG_RAISE_INT2, DEBUG_RAISE_INT1)(__VA_ARGS__)
+
+#define DEBUG_RAISE_INT2(pid, err) \
+  if (err < 0)               \
+  {                          \
+    DEBUG;                   \
+    kill(pid, SIGINT); \
+    raise(SIGINT);           \
+  }
+
+#define DEBUG_RAISE_INT1(err) \
+  if (err < 0)               \
+  {                          \
+    DEBUG;                   \
+    raise(SIGINT);           \
+  }
+#define DEBUG_RAISE_ADDR(addr) \
+  if (addr == NULL)            \
+  {                            \
+    DEBUG;                     \
+    raise(SIGINT);             \
+  }
+
 /* Returns map point from given index */
 extern Point index2point(int index);
 

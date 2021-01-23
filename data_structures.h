@@ -66,12 +66,12 @@ typedef struct taxi_status
 
 enum TaxiOps
 {
-  SPAWNED,
-  PICKUP,
-  BASICMOV,
-  SERVED,
-  TIMEOUT,
-  ABORTED
+  SPAWNED = 1,
+  PICKUP = 2,
+  BASICMOV = 3,
+  SERVED = 4,
+  TIMEOUT = 5,
+  ABORTED = 6
 };
 
 /*

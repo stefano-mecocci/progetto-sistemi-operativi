@@ -18,16 +18,6 @@
 #include <unistd.h>
 
 #define TAXIPIDS_SIZE (SO_TAXI + 1)
-#define DEBUG \
-  printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
-
-#define DEBUG_RAISE_INT(err) \
-  if (err < 0)               \
-  {                          \
-    DEBUG;                   \
-    kill(getppid(), SIGINT); \
-    raise(SIGINT);           \
-  }
 
 /* ENTITÀ */
 pid_t *g_taxi_pids; /* pid dei taxi in vita */
@@ -75,22 +65,24 @@ void receive_spawn_request(int taxi_spawn_msq, Spawn *req)
 {
   int err;
   err = msgrcv(taxi_spawn_msq, req, sizeof req->mtext, 0, 0);
-  DEBUG_RAISE_INT(err);
+  DEBUG_RAISE_INT(getppid(), err);
 }
 
 void remove_old_taxi(int city_id, int city_sems_op, int city_sems_cap,
                      int pos)
 {
+  int err;
   City city = shmat(city_id, NULL, 0);
 
-/* TODO: remove while and IPC_NOWAIT */
-  while (sem_op(city_sems_op, pos, -1, IPC_NOWAIT) != 0)
-    ;
+  err = sem_op(city_sems_op, pos, -1, 0);
+  DEBUG_RAISE_INT(getppid(), err);
 
   city[pos].act_capacity += 1;
-  sem_op(city_sems_cap, pos, 1, 0);
+  err = sem_op(city_sems_cap, pos, 1, 0);
+  DEBUG_RAISE_INT(getppid(), err);
 
-  sem_op(city_sems_op, pos, 1, 0);
+  err = sem_op(city_sems_op, pos, 1, 0);
+  DEBUG_RAISE_INT(getppid(), err);
 
   shmdt(city);
 }
@@ -98,24 +90,26 @@ void remove_old_taxi(int city_id, int city_sems_op, int city_sems_cap,
 int set_taxi(int city_id, int city_sems_op, int city_sems_cap)
 {
   City city = shmat(city_id, NULL, 0);
-  int pos, done = FALSE;
+  int pos, done = FALSE, err;
 
   while (!done)
   {
     pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
 
-    if (sem_op(city_sems_op, pos, -1, IPC_NOWAIT) == 0)
+    if (city[pos].type != CELL_HOLE && city[pos].act_capacity > 0)
     {
-      if (city[pos].type != CELL_HOLE && city[pos].act_capacity > 0)
-      {
-        city[pos].act_capacity -= 1;
-        sem_op(city_sems_cap, pos, -1, 0);
-        done = TRUE;
-      }
-
-      sem_op(city_sems_op, pos, 1, 0);
+      done = TRUE;
     }
   }
+  /* Access the resource */
+  err = sem_op(city_sems_op, pos, -1, 0);
+  DEBUG_RAISE_INT(getppid(), err);
+
+  city[pos].act_capacity -= 1;
+
+  /* Release the resource */
+  err = sem_op(city_sems_op, pos, 1, 0);
+  DEBUG_RAISE_INT(getppid(), err);
 
   shmdt(city);
   return pos;
@@ -127,7 +121,7 @@ pid_t create_taxi(int pos, int isNew)
   pid_t pid = fork();
   int err;
 
-  DEBUG_RAISE_INT(pid);
+  DEBUG_RAISE_INT(getppid(), pid);
 
   if (pid == 0)
   {
@@ -172,7 +166,7 @@ void update_taxi_info(int msq_id)
     req.mtext[1] = -1;
 
     err = msgsnd(msq_id, &req, sizeof req.mtext, 0);
-    DEBUG_RAISE_INT(err);
+    DEBUG_RAISE_INT(getppid(), err);
   }
 }
 

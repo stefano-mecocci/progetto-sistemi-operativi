@@ -15,6 +15,7 @@
 void print_pid() { printf("\n[MASTER] pid %d\n\n", getpid()); }
 
 int main() {
+  int err;
   int city_id = create_city();
   int sync_sems = create_sync_sems();
   int city_sems_op = create_city_sems_op();
@@ -52,11 +53,13 @@ int main() {
 
   create_taxigen();
   create_taxis(taxi_spawn_msq);
-  sem_op(sync_sems, SEM_SYNC_TAXI, 0, 0);
+  err = sem_op(sync_sems, SEM_SYNC_TAXI, 0, 0);
+  DEBUG_RAISE_INT(err);
 
   set_sources(city_id, city_sems_op);
   create_sources();
-  sem_op(sync_sems, SEM_SYNC_SOURCES, 0, 0);
+  err = sem_op(sync_sems, SEM_SYNC_SOURCES, 0, 0);
+  DEBUG_RAISE_INT(err);
   send_sources_origins();
   
   start_timer();

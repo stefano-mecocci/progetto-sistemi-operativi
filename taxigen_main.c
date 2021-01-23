@@ -35,7 +35,8 @@ int main() {
 
   while (TRUE) {
     receive_spawn_request(taxi_spawn_msq, &req);
-    sem_op(sync_sems, SEM_ALIVES_TAXI, 1, 0);
+    err = sem_op(sync_sems, SEM_ALIVES_TAXI, 1, 0);
+    DEBUG_RAISE_INT(err);
 
     if (req.mtype == RESPAWN) {
       remove_old_taxi(city_id, city_sems_op, city_sems_cap, req.mtext[1]);

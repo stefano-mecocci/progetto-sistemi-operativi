@@ -18,6 +18,7 @@
 #include <unistd.h>
 
 int main(int argc, char const *argv[]) {
+  int err;
   int taxi_spawn_msq = read_id_from_file("taxi_spawn_msq");
   int taxi_info_msq = read_id_from_file("taxi_info_msq");
   int requests_msq = read_id_from_file("requests_msq");
@@ -33,7 +34,8 @@ int main(int argc, char const *argv[]) {
   set_handler();
 
   if (atoi(argv[1]) == FALSE) {
-    sem_op(sync_sems, SEM_SYNC_TAXI, -1, IPC_NOWAIT);
+    err = sem_op(sync_sems, SEM_SYNC_TAXI, -1, 0);
+    DEBUG_RAISE_INT(err);
   }
 
   timer_pid = start_timer();

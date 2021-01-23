@@ -13,11 +13,10 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
-int taxi_list_mem_id, taxi_info_msq_id, taxi_request_msq_id, taxi_list_sem_id;
+int taxi_list_mem_id, taxi_info_msq_id, taxi_list_sem_id;
 
 int main(int argc, char const *argv[])
 {
-    taxi_list_mem_id = read_id_from_file("taxi_list_id");
     taxi_list_mem_id = read_id_from_file("taxi_list_id");
     taxi_info_msq_id = read_id_from_file("taxi_info_msq");
     taxi_list_sem_id = read_id_from_file("taxi_list_sem_id");
@@ -44,6 +43,7 @@ void update_taxi_status()
 /* updates taxi status in shared memory */
 void update_taxi_availability_list(TaxiActionMsg update)
 {
+    int err;
     TaxiStatus *taxis = shmat(taxi_list_mem_id, NULL, 0);
     pid_t *current;
     int index = 0;
@@ -60,7 +60,8 @@ void update_taxi_availability_list(TaxiActionMsg update)
     }
 
     /* Access the resource */
-    sem_op(taxi_list_sem_id, 1, -1, 0);
+    err = sem_op(taxi_list_sem_id, 1, -1, 0);
+    DEBUG_RAISE_INT(err);
     if (update.mtype == SPAWNED)
     {
         taxis[index].pid = update.mtext.pid;
@@ -98,7 +99,8 @@ void update_taxi_availability_list(TaxiActionMsg update)
         /* taxi operation out of known range */
     }
     /* Release the resource */
-    sem_op(taxi_list_sem_id, 1, 1, 0);
+    err = sem_op(taxi_list_sem_id, 1, 1, 0);
+    DEBUG_RAISE_INT(err);
 
     shmdt(taxis);
 }
