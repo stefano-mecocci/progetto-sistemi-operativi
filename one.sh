@@ -1,6 +1,6 @@
 ipcrm -a
 
-export SO_HOLES=50
+export SO_HOLES=20
 
 export SO_TOP_CELLS=40
 

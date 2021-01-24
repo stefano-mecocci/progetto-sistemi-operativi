@@ -28,6 +28,7 @@ int g_city_sems_cap;  /* semafori per controllare capacità */
 int g_requests_msq;   /* Coda richieste */
 int g_taxi_info_msq;  /* Coda informazioni statistiche */
 int g_taxi_spawn_msq; /* Coda spawns */
+int *g_origin_msq;
 
 int g_taxi_list_id;  /* id taxi_list shmem */
 int g_taxi_list_sem; /* semaforo per leggere/scrivere nella taxi_list shmem */
@@ -483,12 +484,13 @@ void print_city(int city_id)
 
 void send_sources_origins()
 {
-  int origin_msq, i;
+  int i;
+  g_origin_msq = calloc(SO_SOURCES, sizeof(int));
 
   for (i = 0; i < SO_SOURCES; i++)
   {
-    origin_msq = msgget(g_source_pids[i], 0660);
-    send_source_origin(origin_msq, g_sources_positions[i]);
+    g_origin_msq[i] = msgget(g_source_pids[i], 0660);
+    send_source_origin(g_origin_msq[i], g_sources_positions[i]);
   }
 }
 
@@ -501,7 +503,7 @@ void send_sources_origins()
 /* Pulisce la memoria dagli oggetti IPC usati e non solo */
 void clear_memory()
 {
-  int err = 0;
+  int err = 0, i;
 
   err += shmctl(g_city_id, IPC_RMID, NULL);
   err += semctl(g_sync_sems, -1, IPC_RMID);
@@ -512,6 +514,9 @@ void clear_memory()
   err += msgctl(g_taxi_spawn_msq, IPC_RMID, NULL);
   err += shmctl(g_taxi_list_id, IPC_RMID, NULL);
   err += semctl(g_taxi_list_sem, -1, IPC_RMID);
+  for(i = 0; i < SO_SOURCES; i++){
+    err += msgctl(g_origin_msq[i], IPC_RMID, NULL);
+  }
 
   free(g_top_cells);
   free(g_source_pids);
@@ -537,7 +542,11 @@ void master_handler(int signum)
     send_signal_to_mastertimer(SIGSTOP);
     send_signal_to_sources(SIGSTOP);
 
-    scanf("Press q to quit or any key to continue. %c\n", &selection);
+    fflush(stdout);
+    fflush(stderr);
+    sleep_for(1, 0);
+    printf("Press q to quit or any key to continue.\n");
+    scanf("%c", &selection);
     if (selection != 'q')
     {
       /* continue */
@@ -551,7 +560,10 @@ void master_handler(int signum)
       send_signal_to_taxigen(SIGTERM);
       send_signal_to_changedetector(SIGTERM);
       send_signal_to_mastertimer(SIGTERM);
-      send_signal_to_sources(SIGTERM);      
+      send_signal_to_sources(SIGTERM);
+
+      clear_memory();
+      exit(EXIT_ERROR);
     }
     break;
   case SIGTERM: /* Interrupts the simulation - brutally */    

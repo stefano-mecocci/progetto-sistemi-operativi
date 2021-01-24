@@ -61,7 +61,6 @@ void set_handler(int g_taxi_list_mem_id)
 
 void generate_taxi_request(Request *req)
 {
-  printf("generating request\n");
   int taxi_pid = find_nearest_taxi_pid();
   DEBUG;
   /* DEBUG_RAISE_INT(getppid(), taxi_pid); */
