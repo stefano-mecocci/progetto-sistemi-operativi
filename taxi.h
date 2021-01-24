@@ -17,6 +17,6 @@ void init_data(int master_pid, int pos);
 void start_timer();
 
 /* Receives new ride request */
-extern void receive_ride_request(int requests_msq, Request *req);
+extern void receive_ride_request(int requests_msq, RequestMsg *req);
 
 #endif

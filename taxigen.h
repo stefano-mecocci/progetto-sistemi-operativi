@@ -11,7 +11,7 @@ void set_handler();
 void init_data();
 
 /* Riceve una richiesta di spawn di taxi */
-void receive_spawn_request(int taxi_spawn_msq, Spawn *req);
+void receive_spawn_request(int taxi_spawn_msq, SpawnMsg *req);
 
 /*
 Siccome il taxi è morto, incrementa la capacità attuale della

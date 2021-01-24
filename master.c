@@ -30,9 +30,6 @@ int g_taxi_info_msq;  /* Coda informazioni statistiche */
 int g_taxi_spawn_msq; /* Coda spawns */
 int *g_origin_msq;
 
-int g_taxi_list_id;  /* id taxi_list shmem */
-int g_taxi_list_sem; /* semaforo per leggere/scrivere nella taxi_list shmem */
-
 /* ENTITÀ */
 pid_t *g_source_pids;
 pid_t g_taxigen_pid;
@@ -43,11 +40,11 @@ int *g_sources_positions;
 /* STATISTICHE */
 int g_travels;           /* viaggi totali (successo, abortiti ecc.) */
 int *g_top_cells;        /* posizione celle più attraversate */
-Taxi g_most_street;      /* Taxi che ha percorso più celle */
-Taxi g_most_long_travel; /* Taxi che ha fatto il viaggio più lungo */
-Taxi g_most_requests;    /* Taxi che ha raccolto più richieste */
+TaxiStats g_most_street;      /* Taxi che ha percorso più celle */
+TaxiStats g_most_long_travel; /* Taxi che ha fatto il viaggio più lungo */
+TaxiStats g_most_requests;    /* Taxi che ha raccolto più richieste */
 
-void init_taxi(Taxi *taxi);
+void init_taxi(TaxiStats *taxi);
 void master_handler(int signum);
 void clear_memory();
 void generate_adjacent_list(Point p, int list[]);
@@ -56,10 +53,9 @@ void place_hole(int pos, City city);
 void create_source();
 int generate_origin_point(int, int);
 void send_source_origin(int origin_msq, int origin);
-void add_taxi_info_msq_end();
 void update_stats();
 void update_taxi_stats(int taxi_msg[]);
-void copy_taxi_data(int taxi_msg[], Taxi *taxi);
+void copy_taxi_data(int taxi_msg[], TaxiStats *taxi);
 void print_stats();
 
 /*
@@ -139,48 +135,6 @@ int create_taxi_spawn_msq()
   DEBUG_RAISE_INT(id);
 
   return id;
-}
-
-int create_taxi_availability_list()
-{
-  int size = sizeof(TaxiStatus) * SO_TAXI;
-  int id = shmget(IPC_PRIVATE, size, 0660 | IPC_CREAT);
-  g_taxi_list_id = id;
-
-  DEBUG_RAISE_INT(id);
-
-  return id;
-}
-
-void init_taxi_availability_list()
-{
-  TaxiStatus *taxi = shmat(g_taxi_list_id, NULL, 0);
-  int i;
-
-  for (i = 0; i < SO_TAXI; i++)
-  {
-    taxi[i].pid = -1;
-    taxi[i].available = FALSE;
-    taxi[i].position = -1;
-  }
-
-  shmdt(taxi);
-}
-
-int create_taxi_availability_list_sem()
-{
-  int nsems = 1;
-  int id = semget(IPC_PRIVATE, nsems, 0660 | IPC_CREAT);
-  g_taxi_list_sem = id;
-
-  DEBUG_RAISE_INT(id);
-
-  return id;
-}
-
-void init_taxi_availability_list_sem()
-{
-  semctl(g_taxi_list_sem, 0, SETVAL, 1);
 }
 
 void check_params()
@@ -349,7 +303,7 @@ void create_taxigen()
 void create_taxis(int taxi_spawn_msq)
 {
   int i, err;
-  Spawn req;
+  SpawnMsg req;
 
   for (i = 0; i < SO_TAXI; i++)
   {
@@ -512,8 +466,6 @@ void clear_memory()
   err += msgctl(g_taxi_info_msq, IPC_RMID, NULL);
   err += msgctl(g_requests_msq, IPC_RMID, NULL);
   err += msgctl(g_taxi_spawn_msq, IPC_RMID, NULL);
-  err += shmctl(g_taxi_list_id, IPC_RMID, NULL);
-  err += semctl(g_taxi_list_sem, -1, IPC_RMID);
   for(i = 0; i < SO_SOURCES; i++){
     err += msgctl(g_origin_msq[i], IPC_RMID, NULL);
   }
@@ -646,7 +598,7 @@ void print_stats()
   printf("------------------------------------\n\n");
 }
 
-/* Aggiorna le statistiche della partita */
+/* TOMOVE to taxi_change_detector - Aggiorna le statistiche della partita */
 void update_stats()
 {
   TaxiInfo msg;
@@ -690,35 +642,17 @@ void update_taxi_stats(int taxi_msg[])
 }
 
 /* Copia i dati di un taxi dal messaggio alla struct */
-void copy_taxi_data(int taxi_msg[], Taxi *taxi)
+void copy_taxi_data(int taxi_msg[], TaxiStats *taxi)
 {
   taxi->crossed_cells = taxi_msg[0];
   taxi->max_travel_time = taxi_msg[1];
   taxi->requests = taxi_msg[2];
 }
 
-/*
-Aggiunge un messaggio di fine coda per consentire
-di leggerla tutta
-*/
-void add_taxi_info_msq_end()
-{
-  TaxiInfo info;
-  int err;
-
-  info.mtype = 2;
-  info.mtext[0] = 0;
-  info.mtext[1] = 0;
-  info.mtext[2] = 0;
-
-  err = msgsnd(g_taxi_info_msq, &info, sizeof info.mtext, 0);
-  DEBUG_RAISE_INT(err);
-}
-
 /* Invia l'origine alla sorgnete */
 void send_source_origin(int origin_msq, int origin)
 {
-  Origin msg;
+  OriginMsg msg;
   int err;
 
   msg.mtype = 1;
@@ -830,7 +764,7 @@ void place_hole(int pos, City city)
 }
 
 /* Inizializza una struct taxi */
-void init_taxi(Taxi *taxi)
+void init_taxi(TaxiStats *taxi)
 {
   taxi->crossed_cells = -1;
   taxi->max_travel_time = -1;

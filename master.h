@@ -24,18 +24,6 @@ extern int create_taxi_info_msq();
 /* Coda per (re)spawnare taxi */
 extern int create_taxi_spawn_msq();
 
-/* Creates the taxi availability list in shared memory */
-extern int create_taxi_availability_list();
-
-/* Creates the taxi availability list semaphore for shared memory access */
-extern int create_taxi_availability_list_sem();
-
-/* Initialize taxi availability list in shared memory */
-extern void init_taxi_availability_list();
-
-/* Initialize the taxi availability list semaphore for shared memory access */
-extern void init_taxi_availability_list_sem();
-
 /* Controlla i parametri */
 extern void check_params();
 
