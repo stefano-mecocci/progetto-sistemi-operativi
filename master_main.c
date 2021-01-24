@@ -51,16 +51,19 @@ int main() {
   init_taxi_availability_list();
   init_taxi_availability_list_sem();
 
-  create_taxigen();
-  create_taxis(taxi_spawn_msq);
-  err = sem_op(sync_sems, SEM_SYNC_TAXI, 0, 0);
-  DEBUG_RAISE_INT(err);
 
   set_sources(city_id, city_sems_op);
   create_sources();
   err = sem_op(sync_sems, SEM_SYNC_SOURCES, 0, 0);
   DEBUG_RAISE_INT(err);
   send_sources_origins();
+
+
+  create_taxigen();
+  create_taxis(taxi_spawn_msq);
+  err = sem_op(sync_sems, SEM_SYNC_TAXI, 0, 0);
+  DEBUG_RAISE_INT(err);
+  
   
   start_timer();
   start_change_detector();

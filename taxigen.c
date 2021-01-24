@@ -44,6 +44,8 @@ void set_handler()
   act.sa_handler = taxigen_handler;
 
   sigaction(SIGINT, &act, NULL);
+  sigaction(SIGCONT, &act, NULL);
+  sigaction(SIGTERM, &act, NULL);
   sigaction(SIGUSR2, &act, NULL);
   sigaction(SIGUSR1, &act, NULL);
 }
@@ -68,21 +70,25 @@ void receive_spawn_request(int taxi_spawn_msq, Spawn *req)
   DEBUG_RAISE_INT(getppid(), err);
 }
 
-void remove_old_taxi(int city_sems_cap, int pos) {
+void remove_old_taxi(int city_sems_cap, int pos)
+{
   int err;
   err = sem_op(city_sems_cap, pos, 1, 0);
   DEBUG_RAISE_INT(getppid(), err);
 }
 
-int set_taxi(int city_id, int city_sems_cap) {
+int set_taxi(int city_id, int city_sems_cap)
+{
   City city = shmat(city_id, NULL, 0);
   int pos;
 
-  while (TRUE) {
+  while (TRUE)
+  {
     pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
 
     if (city[pos].type != CELL_HOLE &&
-        (sem_op(city_sems_cap, pos, -1, IPC_NOWAIT) == 0)) {
+        (sem_op(city_sems_cap, pos, -1, IPC_NOWAIT) == 0))
+    {
       break;
     }
   }
@@ -107,7 +113,7 @@ pid_t create_taxi(int pos, int isNew)
     if (err == -1)
     {
       DEBUG;
-      kill(getppid(), SIGINT);
+      kill(getppid(), SIGTERM);
       exit(EXIT_ERROR);
     }
   }
@@ -159,25 +165,36 @@ void taxigen_handler(int signum)
 
   switch (signum)
   {
+  case SIGINT: /* Stop sub processes */
+    send_signal_to_taxis(SIGINT);
+    
+    break;
+  case SIGCONT: /* Resume sub processes */
+    send_signal_to_taxis(SIGCONT);
+
+    break;
   case SIGUSR2:
-    for (i = 0; g_taxi_pids[i] != 0; i++)
-    {
-      kill(g_taxi_pids[i], SIGUSR2);
-    }
+    send_signal_to_taxis(SIGUSR2);
 
     exit(EXIT_SUCCESS);
     break;
-  case SIGINT:
-    for (i = 0; g_taxi_pids[i] != 0; i++)
-    {
-      kill(g_taxi_pids[i], SIGINT);
-    }
+  case SIGTERM:
+    send_signal_to_taxis(SIGTERM);
 
     exit(EXIT_FAILURE);
     break;
   default:
     break;
   }
+}
+
+void send_signal_to_taxis(int signal)
+{
+  int i;
+    for (i = 0; g_taxi_pids[i] != 0; i++)
+    {
+      kill(g_taxi_pids[i], signal);
+    }
 }
 
 /* Prepare gli args del processo taxi */

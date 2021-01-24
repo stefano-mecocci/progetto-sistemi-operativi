@@ -35,6 +35,8 @@ int g_taxi_list_sem; /* semaforo per leggere/scrivere nella taxi_list shmem */
 /* ENTITÀ */
 pid_t *g_source_pids;
 pid_t g_taxigen_pid;
+pid_t g_mastertimer_pid;
+pid_t g_changedetector_pid;
 int *g_sources_positions;
 
 /* STATISTICHE */
@@ -125,7 +127,6 @@ int create_taxi_info_msq()
   DEBUG_RAISE_INT(id);
   g_taxi_info_msq = id;
 
-
   return id;
 }
 
@@ -186,25 +187,25 @@ void check_params()
   if (SO_SOURCES > (SO_WIDTH * SO_HEIGHT - SO_HOLES))
   {
     printf("Errore: troppe sorgenti, città troppo piccola o troppe buche\n");
-    raise(SIGINT);
+    raise(SIGTERM);
   }
 
   if (SO_CAP_MIN > SO_CAP_MAX)
   {
     printf("Errore: SO_CAP_MIN maggiore di SO_CAP_MAX\n");
-    raise(SIGINT);
+    raise(SIGTERM);
   }
 
   if (SO_TIMENSEC_MIN > SO_TIMENSEC_MAX)
   {
     printf("Errore: SO_TIMENSEC_MIN maggiore di SO_TIMENSEC_MAX\n");
-    raise(SIGINT);
+    raise(SIGTERM);
   }
 
   if (SO_TIMEOUT >= SO_DURATION)
   {
     printf("Errore: SO_TIMEOUT maggiore di SO_DURATION\n");
-    raise(SIGINT);
+    raise(SIGTERM);
   }
 }
 
@@ -246,6 +247,7 @@ void set_handler()
   act.sa_handler = master_handler;
 
   sigaction(SIGINT, &act, NULL);
+  sigaction(SIGTERM, &act, NULL);
   sigaction(SIGUSR2, &act, NULL);
   sigaction(SIGUSR1, &act, NULL);
 }
@@ -336,7 +338,7 @@ void create_taxigen()
     if (err == -1)
     {
       DEBUG;
-      raise(SIGINT);
+      raise(SIGTERM);
     }
   }
 
@@ -406,30 +408,39 @@ void start_timer()
     if (err == -1)
     {
       DEBUG;
-      kill(getppid(), SIGINT);
+      kill(getppid(), SIGTERM);
       exit(EXIT_FAILURE);
     }
+  }
+  else
+  {
+
+    g_mastertimer_pid = timer_pid;
   }
 }
 
 void start_change_detector()
 {
-  pid_t timer_pid = fork();
+  pid_t change_detector_pid = fork();
   char *args[2] = {"taxi_change_detector.o", NULL};
   int err;
 
-  DEBUG_RAISE_INT(timer_pid);
+  DEBUG_RAISE_INT(change_detector_pid);
 
-  if (timer_pid == 0)
+  if (change_detector_pid == 0)
   {
     err = execve(args[0], args, environ);
 
     if (err == -1)
     {
       DEBUG;
-      kill(getppid(), SIGINT);
+      kill(getppid(), SIGTERM);
       exit(EXIT_FAILURE);
     }
+  }
+  else
+  {
+    g_changedetector_pid = change_detector_pid;
   }
 }
 
@@ -449,7 +460,9 @@ void print_city(int city_id)
       if (city[i].type == CELL_HOLE)
       {
         printf("x ");
-      } else {
+      }
+      else
+      {
         taxi_num = city[i].capacity - semctl(g_city_sems_cap, i, GETVAL);
 
         if (taxi_num == 0)
@@ -514,39 +527,50 @@ void clear_memory()
 void master_handler(int signum)
 {
   int i, err;
+  char selection;
 
   switch (signum)
   {
-  case SIGINT:
-    if (g_taxigen_pid != -1)
-    {
-      kill(g_taxigen_pid, SIGINT);
-    }
+  case SIGINT: /* User paused from terminal */
+    send_signal_to_taxigen(SIGINT); /* taxigen must stop by itself other sub processes */
+    send_signal_to_changedetector(SIGSTOP);
+    send_signal_to_mastertimer(SIGSTOP);
+    send_signal_to_sources(SIGSTOP);
 
-    for (i = 0; i < SO_SOURCES; i++)
+    scanf("Press q to quit or any key to continue. %c\n", &selection);
+    if (selection != 'q')
     {
-      if (g_source_pids[i] != -1)
-      {
-        kill(g_source_pids[i], SIGINT);
-      }
+      /* continue */
+      send_signal_to_taxigen(SIGCONT);
+      send_signal_to_changedetector(SIGCONT);
+      send_signal_to_mastertimer(SIGCONT);
+      send_signal_to_sources(SIGCONT);
     }
+    else
+    {
+      send_signal_to_taxigen(SIGTERM);
+      send_signal_to_changedetector(SIGTERM);
+      send_signal_to_mastertimer(SIGTERM);
+      send_signal_to_sources(SIGTERM);      
+    }
+    break;
+  case SIGTERM: /* Interrupts the simulation - brutally */    
+    send_signal_to_taxigen(SIGTERM);
+    send_signal_to_changedetector(SIGTERM);
+    send_signal_to_mastertimer(SIGTERM);
+    send_signal_to_sources(SIGTERM);  
 
     clear_memory();
     exit(EXIT_ERROR);
     break;
-  case SIGUSR1:
-    for (i = 0; i < SO_SOURCES; i++)
-    {
-      kill(g_source_pids[i], SIGUSR1);
-    }
+  case SIGUSR1: /* Request new ride in every source */
+    send_signal_to_sources(SIGUSR1);
     break;
-  case SIGUSR2:
-    kill(g_taxigen_pid, SIGUSR2);
-    for (i = 0; i < SO_SOURCES; i++)
-    {
-      kill(g_source_pids[i], SIGUSR2);
-    }
+  case SIGUSR2: /* Interrupts the simulation - gracefully */
+    send_signal_to_taxigen(SIGUSR2);
+    send_signal_to_sources(SIGUSR2);  
 
+    /* TOCHECK */
     err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, 0, 0);
     DEBUG_RAISE_INT(err);
 
@@ -558,6 +582,42 @@ void master_handler(int signum)
     break;
   default:
     break;
+  }
+}
+
+void send_signal_to_taxigen(int signal)
+{
+  if (g_taxigen_pid != -1)
+  {
+    kill(g_taxigen_pid, signal);
+  }
+}
+
+void send_signal_to_changedetector(int signal)
+{
+  if (g_changedetector_pid != -1)
+  {
+    kill(g_changedetector_pid, signal);
+  }
+}
+
+void send_signal_to_mastertimer(int signal)
+{
+  if (g_mastertimer_pid != -1)
+  {
+    kill(g_mastertimer_pid, signal);
+  }
+}
+
+void send_signal_to_sources(int signal)
+{
+  int i;
+  for (i = 0; i < SO_SOURCES; i++)
+  {
+    if (g_source_pids[i] != -1)
+    {
+      kill(g_source_pids[i], signal);
+    }
   }
 }
 
@@ -580,25 +640,20 @@ void update_stats()
   TaxiInfo msg;
   int err;
 
-  /* TOCHECK propose alternative way to check for new msgs
-  while(errno != ENOMSG){
-    err = msgrcv(g_taxi_info_msq, &msg, sizeof msg.mtext, 0, IPC_NOWAIT);
-    DEBUG_RAISE_INT(err);
-  }
-   */
-
-  add_taxi_info_msq_end();
-  msg.mtype = 1;
-
-  while (msg.mtype == 1)
+  while (TRUE)
   {
-    err = msgrcv(g_taxi_info_msq, &msg, sizeof msg.mtext, 0, 0);
-    DEBUG_RAISE_INT(err);
+    err = msgrcv(g_taxi_info_msq, &msg, sizeof msg.mtext, 0, IPC_NOWAIT);
 
-    if (msg.mtype == 1)
+    if (errno != ENOMSG)
     {
+      DEBUG_RAISE_INT(err);
+
       g_travels += msg.mtext[2];
       update_taxi_stats(msg.mtext);
+    }
+    else
+    {
+      break;
     }
   }
 }
@@ -680,9 +735,9 @@ int generate_origin_point(int city_id, int city_sems_op)
   /* Access the resource */
   err = sem_op(city_sems_op, pos, -1, 0);
   DEBUG_RAISE_INT(err);
-  
+
   city[pos].type = CELL_SOURCE;
-  
+
   /* Release the resource */
   err = sem_op(city_sems_op, pos, 1, 0);
   DEBUG_RAISE_INT(err);
@@ -701,7 +756,7 @@ void create_source()
   if (err == -1)
   {
     DEBUG;
-    kill(getppid(), SIGINT);
+    kill(getppid(), SIGTERM);
     exit(EXIT_ERROR);
   }
 }

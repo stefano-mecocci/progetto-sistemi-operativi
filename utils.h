@@ -10,21 +10,21 @@
   if (err < 0)               \
   {                          \
     DEBUG;                   \
-    kill(pid, SIGINT); \
-    raise(SIGINT);           \
+    kill(pid, SIGTERM); \
+    raise(SIGTERM);           \
   }
 
 #define DEBUG_RAISE_INT1(err) \
   if (err < 0)               \
   {                          \
     DEBUG;                   \
-    raise(SIGINT);           \
+    raise(SIGTERM);           \
   }
 #define DEBUG_RAISE_ADDR(addr) \
   if (addr == NULL)            \
   {                            \
     DEBUG;                     \
-    raise(SIGINT);             \
+    raise(SIGTERM);             \
   }
 
 /* Returns map point from given index */

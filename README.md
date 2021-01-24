@@ -96,16 +96,16 @@ Se un taxi muore per timer:
 
 # Segnali
 
-Se invio `SIGINT` al master questo:
-- invia `SIGINT` a tutti processi source
-- invia `SIGINT` a taxigen (che a sua volta lo invia a tutti i taxi)
+Se invio `SIGTERM` al master questo:
+- invia `SIGTERM` a tutti processi source
+- invia `SIGTERM` a taxigen (che a sua volta lo invia a tutti i taxi)
 - rimuove risorse IPC
 - termina
   
-`SIGINT` è per debug praticamente
+`SIGTERM` è per debug praticamente
 
 Se invio `SIGUSR2` al master questo:
-- fa lo stesso discorso di `SIGINT` ma con `SIGUSR2`
+- fa lo stesso discorso di `SIGTERM` ma con `SIGUSR2`
 - aspetta che `sync_sems[2]` valga 0 (zero processi taxi vivi)
 - aggiorna e stampa le statistiche (legge coda `taxi_info`)
 - rimuove risorse IPC

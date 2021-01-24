@@ -26,7 +26,6 @@ int main(int argc, char const *argv[]) {
   int city_sems_op = read_id_from_file("city_sems_op");
   int city_sems_cap = read_id_from_file("city_sems_cap");
   int city_id = read_id_from_file("city_id");
-  pid_t timer_pid;
   Request req;
   
   init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems);
@@ -38,7 +37,7 @@ int main(int argc, char const *argv[]) {
     DEBUG_RAISE_INT(err);
   }
 
-  timer_pid = start_timer();
+  start_timer();
 
   /* while (1); */
   while(TRUE){

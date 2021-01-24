@@ -46,20 +46,16 @@ int main() {
 
     if (req.mtype == RESPAWN) {
       taxi_pid = create_taxi(pos, TRUE);
+      replace_taxi_pid(req.mtext[0], taxi_pid);
     } else {
       taxi_pid = create_taxi(pos, FALSE);
+      add_taxi_pid(taxi_pid);
     }
 
     status.pid = taxi_pid;
     status.position = pos;
     err = send_taxi_update(taxi_info_msq_id, SPAWNED, status);
     DEBUG_RAISE_INT(err);
-
-    if (req.mtype == RESPAWN) {
-      replace_taxi_pid(req.mtext[0], taxi_pid);
-    } else {
-      add_taxi_pid(taxi_pid);
-    }
   }
 
   return 0;

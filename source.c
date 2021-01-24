@@ -54,6 +54,7 @@ void set_handler(int g_taxi_list_mem_id)
   act.sa_handler = source_handler;
 
   sigaction(SIGINT, &act, NULL);
+  sigaction(SIGTERM, &act, NULL);
   sigaction(SIGUSR2, &act, NULL);
   sigaction(SIGUSR1, &act, NULL);
 }
@@ -62,7 +63,8 @@ void generate_taxi_request(Request *req)
 {
   printf("generating request\n");
   int taxi_pid = find_nearest_taxi_pid();
-  DEBUG_RAISE_INT(getppid(), taxi_pid);
+  DEBUG;
+  /* DEBUG_RAISE_INT(getppid(), taxi_pid); */
   req->mtype = taxi_pid;
   printf("Found taxi with pid=%d:", req->mtype);
   req->mtext[0] = g_origin;
@@ -99,7 +101,7 @@ void source_handler(int signum)
 
   switch (signum)
   {
-  case SIGINT:
+  case SIGTERM:
     msgctl(g_origin_msq, IPC_RMID, NULL);
     exit(EXIT_FAILURE);
     break;
@@ -143,7 +145,7 @@ int generate_valid_pos()
 pid_t find_nearest_taxi_pid()
 {
   int min_distance = SO_WIDTH + SO_HEIGHT;
-  int i = 0, err;
+  int i = 0, err, current_distance;
   pid_t pid = 0;
   TaxiStatus taxi;
   TaxiStatus *taxis = shmat(g_taxi_list_mem_id, NULL, 0);
@@ -151,11 +153,13 @@ pid_t find_nearest_taxi_pid()
   while (i < SO_TAXI && min_distance != 0)
   {
     taxi = taxis[i];
-    
-    if(taxi.available == TRUE && (taxi.position - g_origin) < min_distance){
+
+    current_distance = indexes_delta(taxi.position, g_origin);
+    if (taxi.available == TRUE && current_distance < min_distance)
+    {
       /* use (dx + dy) to calc taxicab distance - we already have a decent approximation
-      instead of using a* (more precise -> heavier)  */      
-      min_distance = indexes_delta(taxi.position, g_origin);
+      instead of using a* (more precise -> heavier)  */
+      min_distance = current_distance;
       pid = taxi.pid;
     }
 
@@ -163,8 +167,9 @@ pid_t find_nearest_taxi_pid()
   }
 
   shmdt(taxis);
-  
-  if(pid == 0){
+
+  if (pid == 0)
+  {
     /* raise error - no available taxi found */
     return -1;
   }

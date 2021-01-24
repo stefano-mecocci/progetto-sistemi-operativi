@@ -14,7 +14,7 @@ void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems);
 void init_data(int master_pid, int pos);
 
 /* Avvia il timer di SO_TIMEOUT */
-pid_t start_timer();
+void start_timer();
 
 /* Receives new ride request */
 extern void receive_ride_request(int requests_msq, Request *req);
