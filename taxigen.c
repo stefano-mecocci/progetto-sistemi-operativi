@@ -92,36 +92,20 @@ int sem_increase(int sem_arr, int sem, int value, short flag) {
   return sem_op(sem_arr, sem, value, flag);
 }
 
-void remove_old_taxi(int city_id, int city_sems_op, int city_sems_cap,
-                     int pos) {
-  City city = shmat(city_id, NULL, 0);
-
-  while (sem_decrease(city_sems_op, pos, -1, IPC_NOWAIT) != 0)
-    ;
-
-  city[pos].act_capacity += 1;
+void remove_old_taxi(int city_sems_cap, int pos) {
   sem_increase(city_sems_cap, pos, 1, 0);
-
-  sem_increase(city_sems_op, pos, 1, 0);
-
-  shmdt(city);
 }
 
-int set_taxi(int city_id, int city_sems_op, int city_sems_cap) {
+int set_taxi(int city_id, int city_sems_cap) {
   City city = shmat(city_id, NULL, 0);
-  int pos, done = FALSE;
+  int pos;
 
-  while (!done) {
+  while (TRUE) {
     pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
 
-    if (sem_decrease(city_sems_op, pos, -1, IPC_NOWAIT) == 0) {
-      if (city[pos].type != CELL_HOLE && city[pos].act_capacity > 0) {
-        city[pos].act_capacity -= 1;
-        sem_decrease(city_sems_cap, pos, -1, 0);
-        done = TRUE;
-      }
-
-      sem_increase(city_sems_op, pos, 1, 0);
+    if (city[pos].type != CELL_HOLE &&
+        (sem_decrease(city_sems_cap, pos, -1, IPC_NOWAIT) == 0)) {
+      break;
     }
   }
 
@@ -229,7 +213,9 @@ int sem_op(int sem_arr, int sem, int value, short flag) {
 
   err = semop(sem_arr, op, 1);
 
-  DEBUG_RAISE_INT(err);
+  if (errno != EAGAIN) {
+    DEBUG_RAISE_INT(err);
+  }
 
   return err;
 }
