@@ -1,0 +1,19 @@
+# vs code workspace settings
+.vscode/
+
+# executables
+*.o
+
+#ipc file id
+*_id
+*_msq
+*sems
+*_sems_*
+
+
+# test files
+test.c
+
+# Markdown files
+*.md
+!README.md

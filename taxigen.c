@@ -82,7 +82,7 @@ int set_taxi(int city_id, int city_sems_cap) {
     pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
 
     if (city[pos].type != CELL_HOLE &&
-        (sem_decrease(city_sems_cap, pos, -1, IPC_NOWAIT) == 0)) {
+        (sem_op(city_sems_cap, pos, -1, IPC_NOWAIT) == 0)) {
       break;
     }
   }
