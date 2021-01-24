@@ -12,3 +12,7 @@
 
 # test files
 test.c
+
+# Markdown files
+*.md
+!README.md

@@ -39,10 +39,10 @@ int main() {
     DEBUG_RAISE_INT(err);
 
     if (req.mtype == RESPAWN) {
-      remove_old_taxi(city_id, city_sems_op, city_sems_cap, req.mtext[1]);
+      remove_old_taxi(city_sems_cap, req.mtext[1]);
     }
 
-    pos = set_taxi(city_id, city_sems_op, city_sems_cap);
+    pos = set_taxi(city_id, city_sems_cap);
 
     if (req.mtype == RESPAWN) {
       taxi_pid = create_taxi(pos, TRUE);

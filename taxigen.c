@@ -68,48 +68,24 @@ void receive_spawn_request(int taxi_spawn_msq, Spawn *req)
   DEBUG_RAISE_INT(getppid(), err);
 }
 
-void remove_old_taxi(int city_id, int city_sems_op, int city_sems_cap,
-                     int pos)
-{
+void remove_old_taxi(int city_sems_cap, int pos) {
   int err;
-  City city = shmat(city_id, NULL, 0);
-
-  err = sem_op(city_sems_op, pos, -1, 0);
-  DEBUG_RAISE_INT(getppid(), err);
-
-  city[pos].act_capacity += 1;
   err = sem_op(city_sems_cap, pos, 1, 0);
   DEBUG_RAISE_INT(getppid(), err);
-
-  err = sem_op(city_sems_op, pos, 1, 0);
-  DEBUG_RAISE_INT(getppid(), err);
-
-  shmdt(city);
 }
 
-int set_taxi(int city_id, int city_sems_op, int city_sems_cap)
-{
+int set_taxi(int city_id, int city_sems_cap) {
   City city = shmat(city_id, NULL, 0);
-  int pos, done = FALSE, err;
+  int pos;
 
-  while (!done)
-  {
+  while (TRUE) {
     pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
 
-    if (city[pos].type != CELL_HOLE && city[pos].act_capacity > 0)
-    {
-      done = TRUE;
+    if (city[pos].type != CELL_HOLE &&
+        (sem_decrease(city_sems_cap, pos, -1, IPC_NOWAIT) == 0)) {
+      break;
     }
   }
-  /* Access the resource */
-  err = sem_op(city_sems_op, pos, -1, 0);
-  DEBUG_RAISE_INT(getppid(), err);
-
-  city[pos].act_capacity -= 1;
-
-  /* Release the resource */
-  err = sem_op(city_sems_op, pos, 1, 0);
-  DEBUG_RAISE_INT(getppid(), err);
 
   shmdt(city);
   return pos;

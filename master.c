@@ -449,10 +449,8 @@ void print_city(int city_id)
       if (city[i].type == CELL_HOLE)
       {
         printf("x ");
-      }
-      else
-      {
-        taxi_num = city[i].capacity - city[i].act_capacity;
+      } else {
+        taxi_num = city[i].capacity - semctl(g_city_sems_cap, i, GETVAL);
 
         if (taxi_num == 0)
         {
