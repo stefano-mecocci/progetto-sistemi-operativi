@@ -1,6 +1,7 @@
 #include "params.h"
 #include "data_structures.h"
 #include "utils.h"
+#include "sem_lib.h"
 
 #include <signal.h>
 #include <time.h>
@@ -60,7 +61,7 @@ void update_taxi_availability_list(TaxiActionMsg update)
     }
 
     /* Access the resource */
-    err = sem_op(taxi_list_sem_id, 1, -1, 0);
+    err = sem_reserve(taxi_list_sem_id, 0);
     DEBUG_RAISE_INT(err);
     if (update.mtype == SPAWNED)
     {
@@ -99,7 +100,7 @@ void update_taxi_availability_list(TaxiActionMsg update)
         /* taxi operation out of known range */
     }
     /* Release the resource */
-    err = sem_op(taxi_list_sem_id, 1, 1, 0);
+    err = sem_release(taxi_list_sem_id, 0);
     DEBUG_RAISE_INT(err);
 
     shmdt(taxis);
@@ -110,7 +111,10 @@ void dequeue_invalid_requests(pid_t pid){
     int err;
     while (errno != ENOMSG)
     {
-        err = msgrcv(taxi_info_msq_id, NULL, sizeof(req), pid, IPC_NOWAIT);        
+        err = msgrcv(taxi_info_msq_id, NULL, sizeof(req), pid, IPC_NOWAIT);
+    }
+    if (errno != ENOMSG)
+    {
         DEBUG_RAISE_INT(err);
     }
 }

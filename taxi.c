@@ -128,19 +128,24 @@ void unblock_signal(int signum) {
 
 void taxi_handler(int signum) {
   int i, err;
+  TaxiStatus status;
+  status.pid = getpid();
+  status.position = g_pos;
 
   if (signum == SIGINT) {
     exit(EXIT_ERROR);
-  } else if (signum == SIGUSR2) {
-    send_taxi_data();
+  } else if (signum == SIGUSR2) { /* END OF SIMULATION */
+    /* send_taxi_data(); */
+    send_taxi_update(g_taxi_info_msq, ABORTED, status);
     err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
     DEBUG_RAISE_INT(g_master_pid, err);
 
     exit(EXIT_TIMER);
-  } else if (signum == SIGUSR1) {
+  } else if (signum == SIGUSR1) { /* TIMEOUT */
     block_signal(SIGUSR2);
 
-    send_taxi_data();
+    /* send_taxi_data(); */
+    send_taxi_update(g_taxi_info_msq, TIMEOUT, status);
     send_spawn_request();
     err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
     DEBUG_RAISE_INT(g_master_pid, err);
