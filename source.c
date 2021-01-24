@@ -59,15 +59,20 @@ void set_handler(int g_taxi_list_mem_id)
   sigaction(SIGUSR1, &act, NULL);
 }
 
-void generate_taxi_request(Request *req)
+int generate_taxi_request(Request *req)
 {
   int taxi_pid = find_nearest_taxi_pid();
-  DEBUG;
+  if(taxi_pid == -1){
+    printf("No available taxi found for request in origin=%d\n", g_origin);
+    return -1;
+  } else{
   /* DEBUG_RAISE_INT(getppid(), taxi_pid); */
-  req->mtype = taxi_pid;
-  printf("Found taxi with pid=%d:", req->mtype);
-  req->mtext[0] = g_origin;
-  req->mtext[1] = generate_valid_pos();
+    req->mtype = taxi_pid;
+    printf("Found taxi with pid=%d:", req->mtype);
+    req->mtext[0] = g_origin;
+    req->mtext[1] = generate_valid_pos();
+    return 0;
+  }
 }
 
 void send_taxi_request(Request *req)
