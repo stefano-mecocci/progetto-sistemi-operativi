@@ -25,7 +25,7 @@ int g_taxi_info_msq;
 int g_sync_sems;
 
 pid_t g_master_pid, g_timer_pid;
-Taxi g_data;
+TaxiStats g_data;
 int g_pos;
 
 void taxi_handler(int signum);
@@ -96,10 +96,10 @@ void start_timer()
   }
 }
 
-void receive_ride_request(int requests_msq, Request *req)
+void receive_ride_request(int requests_msq, RequestMsg *req)
 {
   int err;
-  err = msgrcv(requests_msq, req, sizeof req->mtext, getpid(), 0);
+  err = msgrcv(requests_msq, req, sizeof req->mtext, 0, 0);
   DEBUG_RAISE_INT(g_master_pid, err);
 }
 
@@ -109,7 +109,7 @@ void receive_ride_request(int requests_msq, Request *req)
 ====================================
 */
 
-/* Invia i dati del taxi a master */
+/* DEPRECATED(use send_taxi_update instead) - Invia i dati del taxi a master */
 void send_taxi_data()
 {
   TaxiInfo info;
@@ -188,7 +188,7 @@ void taxi_handler(int signum)
 /* Invia una richiesta di spawn a taxigen */
 void send_spawn_request()
 {
-  Spawn req;
+  SpawnMsg req;
   int err;
 
   req.mtype = RESPAWN;

@@ -63,7 +63,7 @@ void init_data()
   g_index = 0;
 }
 
-void receive_spawn_request(int taxi_spawn_msq, Spawn *req)
+void receive_spawn_request(int taxi_spawn_msq, SpawnMsg *req)
 {
   int err;
   err = msgrcv(taxi_spawn_msq, req, sizeof req->mtext, 0, 0);
@@ -139,7 +139,7 @@ void replace_taxi_pid(pid_t old_pid, pid_t new_pid)
 void update_taxi_info(int msq_id)
 {
   int i, err;
-  Spawn req;
+  SpawnMsg req;
 
   for (i = 0; i < SO_TAXI; i++)
   {

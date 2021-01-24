@@ -10,6 +10,7 @@ compile: clean
 	@$(CC) $(CFLAGS) -o master_timer.o master_timer.c utils.c
 	@$(CC) $(CFLAGS) -o source.o source_main.c source.c utils.c
 	@$(CC) $(CFLAGS) -o path_finder.o path_finder.c astar/astar.c astar/astar_heap.c
+	@$(CC) $(CFLAGS) -o print_queue.o print_queue.c utils.c
 
 clean:
 	@rm -rf *.o

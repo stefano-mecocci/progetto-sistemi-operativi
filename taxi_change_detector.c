@@ -10,23 +10,34 @@
 #include <stdio.h>
 #include <errno.h>
 #include <sys/msg.h>
-#include <sys/sem.h>
 #include <sys/ipc.h>
-#include <sys/shm.h>
 
-int taxi_list_mem_id, taxi_info_msq_id, taxi_list_sem_id;
+int taxi_info_msq_id;
+TaxiStatus *g_taxi_status_list;
 
 int main(int argc, char const *argv[])
 {
-    taxi_list_mem_id = read_id_from_file("taxi_list_id");
     taxi_info_msq_id = read_id_from_file("taxi_info_msq");
-    taxi_list_sem_id = read_id_from_file("taxi_list_sem_id");
     while (TRUE)
     {
         update_taxi_status();
     }
     
     return 0;
+}
+
+void create_taxi_availability_list()
+{
+  int i;
+  TaxiStatus *status;
+  g_taxi_status_list = calloc(SO_TAXI, sizeof(TaxiStatus));
+
+  for (i = 0; i < SO_TAXI; i++)
+  {
+    status[i].pid = -1;
+    status[i].available = FALSE;
+    status[i].position = -1;
+  }
 }
 
 /* Gather taxi status updates */
@@ -45,14 +56,13 @@ void update_taxi_status()
 void update_taxi_availability_list(TaxiActionMsg update)
 {
     int err;
-    TaxiStatus *taxis = shmat(taxi_list_mem_id, NULL, 0);
     pid_t *current;
     int index = 0;
     while (current == NULL && index < SO_TAXI)
     {
-        if (update.mtype == SPAWNED || taxis[index].pid == update.mtext.pid)
+        if (update.mtype == SPAWNED || g_taxi_status_list[index].pid == update.mtext.pid)
         {
-            current = &(taxis[index].pid);
+            current = &(g_taxi_status_list[index].pid);
         }
         else
         {
@@ -60,61 +70,39 @@ void update_taxi_availability_list(TaxiActionMsg update)
         }
     }
 
-    /* Access the resource */
-    err = sem_reserve(taxi_list_sem_id, 0);
     DEBUG_RAISE_INT(err);
     if (update.mtype == SPAWNED)
     {
-        taxis[index].pid = update.mtext.pid;
-        taxis[index].available = TRUE;
-        taxis[index].position = update.mtext.position;
+        g_taxi_status_list[index].pid = update.mtext.pid;
+        g_taxi_status_list[index].available = TRUE;
+        g_taxi_status_list[index].position = update.mtext.position;
     }
     else if (update.mtype == PICKUP)
     {
-        taxis[index].available = FALSE;
+        g_taxi_status_list[index].available = FALSE;
     }
     else if (update.mtype == BASICMOV)
     {
-        taxis[index].position = update.mtext.position;
+        g_taxi_status_list[index].position = update.mtext.position;
     }
     else if (update.mtype == SERVED)
     {
-        taxis[index].available = TRUE;
+        g_taxi_status_list[index].available = TRUE;
     }
     else if (update.mtype == TIMEOUT)
     {
-        taxis[index].pid = -1;
-        taxis[index].available = FALSE;
-        taxis[index].position = -1;
-        dequeue_invalid_requests(update.mtext.pid);
+        g_taxi_status_list[index].pid = -1;
+        g_taxi_status_list[index].available = FALSE;
+        g_taxi_status_list[index].position = -1;
     }
     else if (update.mtype == ABORTED)
     {
-        taxis[index].pid = -1;
-        taxis[index].available = FALSE;
-        taxis[index].position = -1;
-        dequeue_invalid_requests(update.mtext.pid);
+        g_taxi_status_list[index].pid = -1;
+        g_taxi_status_list[index].available = FALSE;
+        g_taxi_status_list[index].position = -1;
     }
     else
     {
         /* taxi operation out of known range */
-    }
-    /* Release the resource */
-    err = sem_release(taxi_list_sem_id, 0);
-    DEBUG_RAISE_INT(err);
-
-    shmdt(taxis);
-}
-
-void dequeue_invalid_requests(pid_t pid){
-    Request req;
-    int err;
-    while (errno != ENOMSG)
-    {
-        err = msgrcv(taxi_info_msq_id, NULL, sizeof(req), pid, IPC_NOWAIT);
-    }
-    if (errno != ENOMSG)
-    {
-        DEBUG_RAISE_INT(err);
     }
 }

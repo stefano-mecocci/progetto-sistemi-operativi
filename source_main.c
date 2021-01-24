@@ -13,7 +13,7 @@ int main(int argc, char const *argv[]) {
   int city_id = read_id_from_file("city_id");
   int taxi_list_mem_id = read_id_from_file("taxi_list_id");
   int origin_msq = create_origin_msq();
-  Request req;
+  RequestMsg req;
 
   set_handler();
   init_data(requests_msq, city_id, taxi_list_mem_id);

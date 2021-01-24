@@ -59,23 +59,15 @@ void set_handler(int g_taxi_list_mem_id)
   sigaction(SIGUSR1, &act, NULL);
 }
 
-int generate_taxi_request(Request *req)
+int generate_taxi_request(RequestMsg *req)
 {
-  int taxi_pid = find_nearest_taxi_pid();
-  if(taxi_pid == -1){
-    printf("No available taxi found for request in origin=%d\n", g_origin);
-    return -1;
-  } else{
-  /* DEBUG_RAISE_INT(getppid(), taxi_pid); */
-    req->mtype = taxi_pid;
-    printf("Found taxi with pid=%d:", req->mtype);
-    req->mtext[0] = g_origin;
-    req->mtext[1] = generate_valid_pos();
-    return 0;
-  }
+  req->mtype = 1;
+  req->mtext[0] = g_origin;
+  req->mtext[1] = generate_valid_pos();
+  return 0;
 }
 
-void send_taxi_request(Request *req)
+void send_taxi_request(RequestMsg *req)
 {
   int err = msgsnd(g_requests_msq, req, sizeof req->mtext, 0);
   DEBUG_RAISE_INT(getppid(), err);
@@ -83,7 +75,7 @@ void send_taxi_request(Request *req)
 
 void save_source_position(int origin_msq)
 {
-  Origin msg;
+  OriginMsg msg;
   int err;
 
   err = msgrcv(origin_msq, &msg, sizeof msg.mtext, 0, 0);
@@ -101,7 +93,7 @@ void save_source_position(int origin_msq)
 /* Signal handler del processo source */
 void source_handler(int signum)
 {
-  Request req;
+  RequestMsg req;
 
   switch (signum)
   {
@@ -145,7 +137,7 @@ int generate_valid_pos()
   return pos;
 }
 
-/* Returns the nearest taxi pid to g_origin - needed for ride request */
+/* DEPRECATED(Can't assign taxi during req creation) - Returns the nearest taxi pid to g_origin - needed for ride request */
 pid_t find_nearest_taxi_pid()
 {
   int min_distance = SO_WIDTH + SO_HEIGHT;

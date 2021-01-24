@@ -54,7 +54,7 @@ typedef struct taxi
   int crossed_cells;
   int max_travel_time;
   int requests;
-} Taxi;
+} TaxiStats;
 
 /* Represents the current status of the taxi */
 typedef struct taxi_status
@@ -62,6 +62,7 @@ typedef struct taxi_status
   pid_t pid;
   enum Bool available;
   int position;
+
 } TaxiStatus;
 
 enum TaxiOps
@@ -86,7 +87,7 @@ typedef struct
   TaxiStatus mtext;
 } TaxiActionMsg;
 
-/*
+/* DEPRECATED
 Messaggio di richiesta taxi:
 - mtext == Taxi
 */
@@ -96,17 +97,15 @@ typedef struct taxi_info
   int mtext[sizeof(int) * 3];
 } TaxiInfo;
 
-#define REQ_SIZE 2
-
 /*
 Messaggio di richiesta taxi:
 - mtext indica punti di origine e destinazione [origin, destination] 
 */
 typedef struct request
 {
-  long mtype; /* se usassimo mtype come identificatore di taxi pid? */
-  int mtext[REQ_SIZE];
-} Request;
+  long mtype;
+  int mtext[2];
+} RequestMsg;
 
 /*
 Messaggio di richiesta di spawn (per taxigen):
@@ -117,7 +116,7 @@ typedef struct spawn
 {
   long mtype;
   int mtext[2];
-} Spawn;
+} SpawnMsg;
 
 #define SPAWN 2
 #define RESPAWN 3
@@ -129,6 +128,6 @@ typedef struct origin
 {
   long mtype;
   int mtext[1];
-} Origin;
+} OriginMsg;
 
 #endif

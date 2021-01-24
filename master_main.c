@@ -23,8 +23,6 @@ int main() {
   int requests_msq = create_requests_msq();
   int taxi_info_msq = create_taxi_info_msq();
   int taxi_spawn_msq = create_taxi_spawn_msq();
-  int taxi_list_id = create_taxi_availability_list();
-  int taxi_list_sem_id = create_taxi_availability_list_sem();
 
   write_id_to_file(city_id, "city_id");
   write_id_to_file(sync_sems, "sync_sems");
@@ -33,8 +31,6 @@ int main() {
   write_id_to_file(requests_msq, "requests_msq");
   write_id_to_file(taxi_spawn_msq, "taxi_spawn_msq");
   write_id_to_file(taxi_info_msq, "taxi_info_msq");
-  write_id_to_file(taxi_list_id, "taxi_list_id");
-  write_id_to_file(taxi_list_sem_id, "taxi_list_sem_id");
 
   check_params();
   init_data();
@@ -48,9 +44,6 @@ int main() {
   init_sync_sems(sync_sems);
   init_city_sems_op(city_sems_op);
   init_city_sems_cap(city_id, city_sems_cap);
-  init_taxi_availability_list();
-  init_taxi_availability_list_sem();
-
 
   set_sources(city_id, city_sems_op);
   create_sources();

@@ -26,7 +26,7 @@ int main(int argc, char const *argv[]) {
   int city_sems_op = read_id_from_file("city_sems_op");
   int city_sems_cap = read_id_from_file("city_sems_cap");
   int city_id = read_id_from_file("city_id");
-  Request req;
+  RequestMsg req;
   
   init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems);
   init_data(atoi(argv[2]), atoi(argv[3]));
@@ -39,9 +39,9 @@ int main(int argc, char const *argv[]) {
 
   start_timer();
 
-  /* while (1); */
   while(TRUE){
     receive_ride_request(requests_msq, &req);
+    printf("Received new ride request: source=%d; destination=%d", req.mtext[0], req.mtext[1]);
   }
 
   return 0;

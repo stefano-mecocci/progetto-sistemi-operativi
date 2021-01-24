@@ -26,7 +26,7 @@ int main() {
   int city_sems_cap = read_id_from_file("city_sems_cap");
   int city_sems_op = read_id_from_file("city_sems_op");
   int pos, err;
-  Spawn req;
+  SpawnMsg req;
   TaxiStatus status;
   pid_t taxi_pid;
 
@@ -53,6 +53,7 @@ int main() {
     }
 
     status.pid = taxi_pid;
+    status.available = TRUE;
     status.position = pos;
     err = send_taxi_update(taxi_info_msq_id, SPAWNED, status);
     DEBUG_RAISE_INT(err);
