@@ -1,10 +1,10 @@
 ipcrm -a
 
-export SO_HOLES=10
+export SO_HOLES=50
 
 export SO_TOP_CELLS=40
 
-export SO_SOURCES=190 # default = 190 (SO_WIDTH * SO_HEIGHT - SO_HOLES)
+export SO_SOURCES=10 # default = 190 (SO_WIDTH * SO_HEIGHT - SO_HOLES)
 
 export SO_CAP_MIN=1
 

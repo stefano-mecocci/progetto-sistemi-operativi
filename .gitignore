@@ -2,10 +2,14 @@
 .vscode/
 
 # executables
-master
-taxi
-taxigen
-source
+*.o
+
+#ipc file id
+*_id
+*_msq
+*sems
+*_sems_*
+
 
 # test files
 test.c

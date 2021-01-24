@@ -4,9 +4,6 @@
 #include <sys/types.h>
 #include "data_structures.h"
 
-/* Legge l'id di una risorsa IPC da un file */
-int read_id_from_file(char * filename);
-
 /* Imposta il signal handler di taxigen */
 void set_handler();
 
@@ -22,12 +19,6 @@ cella
 */
 void remove_old_taxi(int city_sems_cap, int pos);
 
-/* Autoesplicativo */
-int sem_decrease(int sem_arr, int sem, int value, short flag);
-
-/* Autoesplicativo */
-int sem_increase(int sem_arr, int sem, int value, short flag);
-
 /*
 Imposta un taxi sulla città, in una posizione casuale, riducendo
 la capacità attuale della cella
@@ -40,7 +31,7 @@ pid_t create_taxi(int pos, int isNew);
 /* Aggiunge un pid all'array globale g_taxi_pids */
 void add_taxi_pid(pid_t pid);
 
-/* RImpiazza un pid nell'array global g_taxi_pids */
+/* Rimpiazza un pid nell'array global g_taxi_pids */
 void replace_taxi_pid(pid_t old_pid, pid_t new_pid);
 
 #endif

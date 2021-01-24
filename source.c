@@ -3,6 +3,7 @@
 #include "source.h"
 #include "data_structures.h"
 #include "params.h"
+#include "utils.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -12,91 +13,81 @@
 #include <sys/shm.h>
 #include <sys/types.h>
 
-#define DEBUG                                                                  \
-  printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
-
-#define DEBUG_RAISE_INT(err)                                                   \
-  if (err < 0) {                                                               \
-    DEBUG;                                                                     \
-    kill(getppid(), SIGINT);                                                   \
-    raise(SIGINT);                                                             \
-  }
-
 int g_origin;
 
 int g_requests_msq;
 int g_city_id;
 int g_origin_msq;
+int g_taxi_list_mem_id;
 
 void source_handler(int signum);
 int generate_valid_pos();
-int rand_int(int min, int max);
-int sem_op(int sem_arr, int sem, int value, short flag);
-
 /*
 ====================================
   PUBLIC
 ====================================
 */
 
-int create_origin_msq() {
+int create_origin_msq()
+{
   int id = msgget(getpid(), 0660 | IPC_CREAT);
-  g_origin_msq = id;
+  DEBUG_RAISE_INT(getppid(), id);
 
-  DEBUG_RAISE_INT(id);
+  g_origin_msq = id;
 
   return id;
 }
 
-void init_data(int requests_msq, int city_id) {
+void init_data(int requests_msq, int city_id, int taxi_list_mem_id)
+{
   g_origin = -1;
   g_requests_msq = requests_msq;
   g_city_id = city_id;
+  g_taxi_list_mem_id = taxi_list_mem_id;
 }
 
-void set_handler() {
+void set_handler(int g_taxi_list_mem_id)
+{
   struct sigaction act;
   bzero(&act, sizeof act);
 
   act.sa_handler = source_handler;
 
   sigaction(SIGINT, &act, NULL);
+  sigaction(SIGTERM, &act, NULL);
   sigaction(SIGUSR2, &act, NULL);
   sigaction(SIGUSR1, &act, NULL);
 }
 
-int sem_decrease(int sem_arr, int sem, int value, short flag) {
-  return sem_op(sem_arr, sem, value, flag);
+int generate_taxi_request(Request *req)
+{
+  int taxi_pid = find_nearest_taxi_pid();
+  if(taxi_pid == -1){
+    printf("No available taxi found for request in origin=%d\n", g_origin);
+    return -1;
+  } else{
+  /* DEBUG_RAISE_INT(getppid(), taxi_pid); */
+    req->mtype = taxi_pid;
+    printf("Found taxi with pid=%d:", req->mtype);
+    req->mtext[0] = g_origin;
+    req->mtext[1] = generate_valid_pos();
+    return 0;
+  }
 }
 
-int read_id_from_file(char *filename) {
-  FILE *f = fopen(filename, "r");
-  int id;
-
-  fscanf(f, "%d", &id);
-  fclose(f);
-
-  return id;
-}
-
-void generate_taxi_request(Request *req) {
-  req->mtype = 1;
-
-  req->mtext[0] = g_origin;
-  req->mtext[1] = generate_valid_pos();
-}
-
-void send_taxi_request(Request *req) {
+void send_taxi_request(Request *req)
+{
   int err = msgsnd(g_requests_msq, req, sizeof req->mtext, 0);
-  DEBUG_RAISE_INT(err);
+  DEBUG_RAISE_INT(getppid(), err);
 }
 
-void save_source_position(int origin_msq) {
+void save_source_position(int origin_msq)
+{
   Origin msg;
   int err;
 
   err = msgrcv(origin_msq, &msg, sizeof msg.mtext, 0, 0);
-  DEBUG_RAISE_INT(err);
+  DEBUG_RAISE_INT(getppid(), err);
 
   g_origin = msg.mtext[0];
 }
@@ -108,11 +99,13 @@ void save_source_position(int origin_msq) {
 */
 
 /* Signal handler del processo source */
-void source_handler(int signum) {
+void source_handler(int signum)
+{
   Request req;
 
-  switch (signum) {
-  case SIGINT:
+  switch (signum)
+  {
+  case SIGTERM:
     msgctl(g_origin_msq, IPC_RMID, NULL);
     exit(EXIT_FAILURE);
     break;
@@ -132,42 +125,58 @@ void source_handler(int signum) {
   }
 }
 
-int sem_op(int sem_arr, int sem, int value, short flag) {
-  struct sembuf sops[1];
-  int err;
-
-  sops[0].sem_flg = flag;
-  sops[0].sem_num = sem;
-  sops[0].sem_op = value;
-
-  err = semop(sem_arr, sops, 1);
-  DEBUG_RAISE_INT(err);
-
-  return err;
-}
-
-/* Genera un numero random fra [min, max], se min == max ritorna min */
-int rand_int(int min, int max) {
-  if (min == max) {
-    return min;
-  } else {
-    return (rand() % (max - min + 1)) + min;
-  }
-}
-
 /* Genera una posizione valida per la destinazione */
-int generate_valid_pos() {
+int generate_valid_pos()
+{
   City city = shmat(g_city_id, NULL, 0);
   int pos = -1, done = FALSE;
 
-  while (!done) {
+  while (!done)
+  {
     pos = rand_int(0, SO_HEIGHT * SO_WIDTH - 1);
 
-    if (city[pos].type != CELL_HOLE) {
+    if (city[pos].type != CELL_HOLE)
+    {
       done = TRUE;
     }
   }
 
   shmdt(city);
   return pos;
+}
+
+/* Returns the nearest taxi pid to g_origin - needed for ride request */
+pid_t find_nearest_taxi_pid()
+{
+  int min_distance = SO_WIDTH + SO_HEIGHT;
+  int i = 0, err, current_distance;
+  pid_t pid = 0;
+  TaxiStatus taxi;
+  TaxiStatus *taxis = shmat(g_taxi_list_mem_id, NULL, 0);
+
+  while (i < SO_TAXI && min_distance != 0)
+  {
+    taxi = taxis[i];
+
+    current_distance = indexes_delta(taxi.position, g_origin);
+    if (taxi.available == TRUE && current_distance < min_distance)
+    {
+      /* use (dx + dy) to calc taxicab distance - we already have a decent approximation
+      instead of using a* (more precise -> heavier)  */
+      min_distance = current_distance;
+      pid = taxi.pid;
+    }
+
+    i++;
+  }
+
+  shmdt(taxis);
+
+  if (pid == 0)
+  {
+    /* raise error - no available taxi found */
+    return -1;
+  }
+
+  return pid;
 }
