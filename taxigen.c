@@ -136,21 +136,6 @@ void replace_taxi_pid(pid_t old_pid, pid_t new_pid)
   g_taxi_pids[index] = new_pid;
 }
 
-void update_taxi_info(int msq_id)
-{
-  int i, err;
-  SpawnMsg req;
-
-  for (i = 0; i < SO_TAXI; i++)
-  {
-    req.mtype = SPAWN;
-    req.mtext[0] = -1;
-    req.mtext[1] = -1;
-
-    err = msgsnd(msq_id, &req, sizeof req.mtext, 0);
-    DEBUG_RAISE_INT(getppid(), err);
-  }
-}
 
 /*
 ====================================
@@ -167,7 +152,7 @@ void taxigen_handler(int signum)
   {
   case SIGINT: /* Stop sub processes */
     send_signal_to_taxis(SIGINT);
-    
+    raise(SIGSTOP);
     break;
   case SIGCONT: /* Resume sub processes */
     send_signal_to_taxis(SIGCONT);

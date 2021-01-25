@@ -32,7 +32,7 @@ int main(int argc, char const *argv[]) {
   direction_t *path;
   int steps = 0;
   
-  init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id);
+  init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_op);
   init_data(atoi(argv[2]), atoi(argv[3]));
   set_handler();
 
@@ -40,6 +40,8 @@ int main(int argc, char const *argv[]) {
     err = sem_op(sync_sems, SEM_SYNC_TAXI, -1, 0);
     DEBUG_RAISE_INT(err);
   }
+
+printf("actual pos (%d, %d)\n", index2point(get_position()).x, index2point(get_position()).y);
 
   /* start_timer(); */
   init_astar();

@@ -4,6 +4,7 @@
 #include "data_structures.h"
 #include "params.h"
 #include "utils.h"
+#include "sem_lib.h"
 #include "astar/astar.h"
 
 #include <errno.h>
@@ -25,6 +26,7 @@ int g_taxi_spawn_msq;
 int g_taxi_info_msq;
 int g_sync_sems;
 int g_city_id;
+int g_city_sems_cap;
 
 pid_t g_master_pid, g_timer_pid;
 TaxiStats g_data;
@@ -33,8 +35,6 @@ astar_t *g_as;
 
 void taxi_handler(int signum);
 void send_spawn_request();
-void block_signal(int signum);
-void unblock_signal(int signum);
 void send_taxi_data();
 
 /*
@@ -57,12 +57,13 @@ void set_handler()
   sigaction(SIGUSR1, &act, NULL);
 }
 
-void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, int city_id)
+void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, int city_id, int city_sems_cap)
 {
   g_taxi_spawn_msq = taxi_spawn_msq;
   g_taxi_info_msq = taxi_info_msq;
   g_sync_sems = sync_sems;
   g_city_id = city_id;
+  g_city_sems_cap = city_sems_cap;
 }
 
 void init_data(int master_pid, int pos)
@@ -138,22 +139,6 @@ void send_taxi_data()
   DEBUG_RAISE_INT(g_master_pid, err);
 }
 
-void block_signal(int signum)
-{
-  sigset_t mask;
-  bzero(&mask, sizeof mask);
-  sigaddset(&mask, signum);
-  sigprocmask(SIG_BLOCK, &mask, NULL);
-}
-
-void unblock_signal(int signum)
-{
-  sigset_t mask;
-  bzero(&mask, sizeof mask);
-  sigaddset(&mask, signum);
-  sigprocmask(SIG_UNBLOCK, &mask, NULL);
-}
-
 void taxi_handler(int signum)
 {
   int i, err;
@@ -165,6 +150,7 @@ void taxi_handler(int signum)
   {
   case SIGINT:
     kill(g_timer_pid, SIGSTOP);
+    raise(SIGSTOP);
     break;
 
   case SIGCONT:
@@ -266,9 +252,13 @@ void travel(direction_t *directions, int steps)
     printf("step %d: (%d, %d)\n", i + 1, p.x, p.y);
     next_addr = point2index(p);
     crossing_time = get_cell_crossing_time(g_city_id, next_addr);
-    sleep_for(0, crossing_time);
-    set_position(next_addr);
     
+    sem_release(g_city_sems_cap, get_position());
+    sem_reserve(g_city_sems_cap, next_addr);
+    
+    set_position(next_addr);
+    sleep_for(0, crossing_time);
+
     status.available = FALSE;
     status.pid = getpid();
     status.position = get_position();

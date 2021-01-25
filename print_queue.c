@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include "data_structures.h"
 #include "utils.h"
 #include <stdlib.h>
@@ -26,7 +28,7 @@ void print_queue_taxi_info(int msqid)
     printf("Unprocessed taxi status changes: \n");
     while (TRUE)
     {
-        msgrcv(msqid, &msg, sizeof(TaxiActionMsg), 0, IPC_NOWAIT);
+        msgrcv(msqid, &msg, sizeof(TaxiActionMsg), 0, IPC_NOWAIT | MSG_COPY);
         if (errno != ENOMSG)
         {
             printf("status=%s, pid=%d, available=%s, position=%d\n",

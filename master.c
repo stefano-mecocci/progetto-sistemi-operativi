@@ -489,6 +489,8 @@ void master_handler(int signum)
   int i, err;
   char selection;
 
+  printf("signum=%d\n", signum);
+
   switch (signum)
   {
   case SIGINT:                      /* User paused from terminal */
@@ -497,9 +499,9 @@ void master_handler(int signum)
     send_signal_to_mastertimer(SIGSTOP);
     send_signal_to_sources(SIGSTOP);
 
+    sleep_for(1, 0);
     fflush(stdout);
     fflush(stderr);
-    sleep_for(1, 0);
     printf("Press q to quit or any key to continue.\n");
     scanf("%c", &selection);
     if (selection != 'q')
