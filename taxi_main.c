@@ -3,6 +3,8 @@
 #include "data_structures.h"
 #include "params.h"
 #include "taxi.h"
+#include "utils.h"
+#include "astar/astar.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -17,6 +19,7 @@
 #include <unistd.h>
 
 int main(int argc, char const *argv[]) {
+  int err;
   int taxi_spawn_msq = read_id_from_file("taxi_spawn_msq");
   int taxi_info_msq = read_id_from_file("taxi_info_msq");
   int requests_msq = read_id_from_file("requests_msq");
@@ -24,19 +27,51 @@ int main(int argc, char const *argv[]) {
   int city_sems_op = read_id_from_file("city_sems_op");
   int city_sems_cap = read_id_from_file("city_sems_cap");
   int city_id = read_id_from_file("city_id");
-  pid_t timer_pid;
+  RequestMsg req;
+  TaxiStatus status;
+  direction_t *path;
+  int steps = 0;
   
-  init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems);
+  init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap);
   init_data(atoi(argv[2]), atoi(argv[3]));
   set_handler();
 
   if (atoi(argv[1]) == FALSE) {
-    sem_decrease(sync_sems, SEM_SYNC_TAXI, -1, IPC_NOWAIT);
+    err = sem_op(sync_sems, SEM_SYNC_TAXI, -1, 0);
+    DEBUG_RAISE_INT(err);
   }
 
-  timer_pid = start_timer();
+  /* start_timer(); */
+  init_astar();
 
-  while (1);
+  while(TRUE){
+    receive_ride_request(requests_msq, &req);
+    printf("Received new ride request: source=%d; destination=%d\n", req.mtext.origin, req.mtext.destination);
+    /* Stop taxi timer */
+    if(req.mtext.origin != get_position()){
+      printf("First moving to source for pickup\n");
+      /* gather path to source */
+      path = get_path(get_position(), req.mtext.origin, &steps);
+      travel(path, steps);
+      if(get_position() != req.mtext.origin){
+        errno = 0;
+        DEBUG_RAISE_INT(-1);
+      }
+    }
+    printf("START RIDE\n");
+    status.available = FALSE;
+    status.pid = getpid();
+    status.position = get_position();
+    send_taxi_update(taxi_info_msq, PICKUP, status);
+    /* gather path to destination */
+    path = get_path(get_position(), req.mtext.destination, &steps);
+    travel(path, steps);
+    printf("END RIDE\n");
+    status.available = TRUE;
+    status.pid = getpid();
+    status.position = get_position();
+    send_taxi_update(taxi_info_msq, SERVED, status);
+  }
 
   return 0;
 }
