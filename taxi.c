@@ -4,6 +4,7 @@
 #include "data_structures.h"
 #include "params.h"
 #include "utils.h"
+#include "astar/astar.h"
 
 #include <errno.h>
 #include <signal.h>
@@ -23,10 +24,12 @@
 int g_taxi_spawn_msq;
 int g_taxi_info_msq;
 int g_sync_sems;
+int g_city_id;
 
 pid_t g_master_pid, g_timer_pid;
 TaxiStats g_data;
 int g_pos;
+astar_t *g_as;
 
 void taxi_handler(int signum);
 void send_spawn_request();
@@ -54,11 +57,12 @@ void set_handler()
   sigaction(SIGUSR1, &act, NULL);
 }
 
-void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems)
+void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, int city_id)
 {
   g_taxi_spawn_msq = taxi_spawn_msq;
   g_taxi_info_msq = taxi_info_msq;
   g_sync_sems = sync_sems;
+  g_city_id = city_id;
 }
 
 void init_data(int master_pid, int pos)
@@ -69,6 +73,11 @@ void init_data(int master_pid, int pos)
   g_data.crossed_cells = 1;
   g_data.max_travel_time = 2;
   g_data.requests = 3;
+}
+
+int get_position()
+{
+  return g_pos;
 }
 
 void start_timer()
@@ -162,14 +171,6 @@ void taxi_handler(int signum)
     exit(EXIT_ERROR);
     break;
 
-  case SIGUSR2: /* END OF SIMULATION */
-    send_taxi_update(g_taxi_info_msq, ABORTED, status);
-    err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
-    DEBUG_RAISE_INT(g_master_pid, err);
-
-    exit(EXIT_TIMER);
-    break;
-
   case SIGUSR1: /* TIMEOUT */
     block_signal(SIGUSR2);
 
@@ -180,6 +181,14 @@ void taxi_handler(int signum)
     DEBUG_RAISE_INT(g_master_pid, err);
 
     unblock_signal(SIGUSR2);
+    exit(EXIT_TIMER);
+    break;
+
+  case SIGUSR2: /* END OF SIMULATION */
+    send_taxi_update(g_taxi_info_msq, ABORTED, status);
+    err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
+    DEBUG_RAISE_INT(g_master_pid, err);
+
     exit(EXIT_TIMER);
     break;
   }
@@ -197,4 +206,47 @@ void send_spawn_request()
 
   err = msgsnd(g_taxi_spawn_msq, &req, sizeof req.mtext, 0);
   DEBUG_RAISE_INT(g_master_pid, err);
+}
+
+uint8_t get_map_cost(const uint32_t x, const uint32_t y)
+{
+  return get_cell_type(g_city_id, coordinates2index(x, y)) == CELL_HOLE ? COST_BLOCKED : 1;
+}
+
+void init_astar()
+{
+  int x0, y0, x1, y1;
+  int result;
+
+  /* Allocate an A* context. */
+  g_as = astar_new(SO_WIDTH, SO_HEIGHT, get_map_cost, NULL);
+  astar_set_origin(g_as, 0, 0);
+  astar_set_movement_mode(g_as, DIR_CARDINAL);
+}
+
+direction_t *get_path(int position, int destination)
+{
+  direction_t *directions;
+  Point start = index2point(position);
+  Point end = index2point(destination);
+  int num_steps;
+
+
+  /* Look for a route. */
+  printf("Finding route sx=%d, sy=%d, ex=%d, ey=%d  \n", start.x, start.y, end.x, end.y);
+  /* BROKEN */
+  int result = astar_run(g_as, start.x, start.y, end.x, end.y);
+  if (astar_have_route(g_as))
+  {
+    num_steps = astar_get_directions(g_as, &directions);
+  DEBUG_RAISE_INT(result);
+    printf("Found route with %d steps\n", num_steps);
+  }
+  astar_free_directions(directions);
+  return directions;
+}
+
+void travel(direction_t *directions)
+{
+  printf("Travelling toward destination...\n");
 }

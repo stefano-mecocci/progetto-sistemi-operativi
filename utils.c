@@ -29,6 +29,11 @@ int indexes_delta(int idx1, int idx2)
   return points_delta(index2point(idx1), index2point(idx2));
 }
 
+int coordinates2index(int x, int y){
+  Point p = {x, y};
+  return point2index(p);
+}
+
 /* Returns taxicab distance between map points */
 int points_delta(Point pt1, Point pt2)
 {
@@ -105,4 +110,12 @@ int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status)
   msg.mtype = op;
   msg.mtext = status;
   return msgsnd(queue_id, &msg, sizeof(TaxiStatus), 0);
+}
+
+enum cell_type get_cell_type(int city_id, int position)
+{
+  City city = shmat(city_id, NULL, 0);
+  enum cell_type type = city[position].type;
+  shmdt(city);
+  return type;
 }

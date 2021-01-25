@@ -4,6 +4,7 @@
 #include "params.h"
 #include "taxi.h"
 #include "utils.h"
+#include "astar/astar.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -27,8 +28,10 @@ int main(int argc, char const *argv[]) {
   int city_sems_cap = read_id_from_file("city_sems_cap");
   int city_id = read_id_from_file("city_id");
   RequestMsg req;
+  TaxiStatus status;
+  direction_t *path;
   
-  init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems);
+  init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id);
   init_data(atoi(argv[2]), atoi(argv[3]));
   set_handler();
 
@@ -37,11 +40,30 @@ int main(int argc, char const *argv[]) {
     DEBUG_RAISE_INT(err);
   }
 
-  start_timer();
+  /* start_timer(); */
+  init_astar();
 
   while(TRUE){
     receive_ride_request(requests_msq, &req);
-    printf("Received new ride request: source=%d; destination=%d", req.mtext[0], req.mtext[1]);
+    printf("Received new ride request: source=%d; destination=%d", req.mtext.origin, req.mtext.destination);
+    /* Stop taxi timer */
+    if(req.mtext.origin != get_position()){
+      printf("First moving to source for pickup\n");
+      /* gather path to source */
+      path = get_path(get_position(), req.mtext.origin);
+      travel(path);
+    }
+    status.available = FALSE;
+    status.pid = getpid();
+    status.position = get_position();
+    send_taxi_update(taxi_info_msq, PICKUP, status);
+    /* gather path to destination */
+    path = get_path(get_position(), req.mtext.destination);
+    travel(path);    
+    status.available = TRUE;
+    status.pid = getpid();
+    status.position = get_position();
+    send_taxi_update(taxi_info_msq, SERVED, status);
   }
 
   return 0;

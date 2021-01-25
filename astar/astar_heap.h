@@ -31,6 +31,7 @@ extern "C" {
 
 
 #include <sys/time.h>
+#include <stdio.h>
 #include "astar_config.h"
 
 

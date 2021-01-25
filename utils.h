@@ -54,3 +54,5 @@ extern int rand_int(int min, int max);
 
 /* Enqueues taxi status update */
 extern int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status);
+
+extern enum cell_type get_cell_type(int city_id, int position);
