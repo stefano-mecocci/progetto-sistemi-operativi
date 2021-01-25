@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-01-25T09:15:09.109Z" agent="5.0 (X11)" etag="dme0Qfke1ZICXCgaay9G" version="14.2.7" type="github">
+<mxfile host="app.diagrams.net" modified="2021-01-25T11:09:36.535Z" agent="5.0 (X11)" etag="OEirMrJ6Hzs3DPLe4GYw" version="14.2.7" type="github">
   <diagram name="Page-1" id="2a216829-ef6e-dabb-86c1-c78162f3ba2b">
     <mxGraphModel dx="2452" dy="875" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" background="#ffffff" math="0" shadow="0">
       <root>
@@ -19,8 +19,11 @@
         <mxCell id="JYl7rzeL7S-SN__j08-0-1" value="master" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="320" y="50" width="120" height="60" as="geometry" />
         </mxCell>
+        <mxCell id="JYl7rzeL7S-SN__j08-0-28" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="JYl7rzeL7S-SN__j08-0-2" target="JYl7rzeL7S-SN__j08-0-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
         <mxCell id="JYl7rzeL7S-SN__j08-0-2" value="&lt;div&gt;taxi_change_detector&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="660" y="200" width="120" height="60" as="geometry" />
+          <mxGeometry x="670" y="200" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="JYl7rzeL7S-SN__j08-0-19" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.572;entryY=-0.044;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="JYl7rzeL7S-SN__j08-0-3" target="JYl7rzeL7S-SN__j08-0-15">
           <mxGeometry relative="1" as="geometry" />
@@ -58,8 +61,11 @@
         <mxCell id="JYl7rzeL7S-SN__j08-0-18" value="taxi_timer" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="430" y="590" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="JYl7rzeL7S-SN__j08-0-21" value="" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
-          <mxGeometry x="720" y="400" width="60" height="80" as="geometry" />
+        <mxCell id="JYl7rzeL7S-SN__j08-0-21" value="taxi_info_msq" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="690" y="400" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="JYl7rzeL7S-SN__j08-0-24" value="on status change" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="600" y="410" width="40" height="20" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
