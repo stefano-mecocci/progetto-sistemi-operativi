@@ -4,29 +4,43 @@
 #include "data_structures.h"
 #include "params.h"
 #include <stdlib.h>
+#include <errno.h>
 #include <stdio.h>
+#include <sys/shm.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <sys/msg.h>
+#include <signal.h>
+#include <math.h>
+#include <time.h>
+#include <string.h>
 
 /* Conversione indice -> punto */
 Point index2point(int index)
 {
-  Point p;
+  Point p; 
 
-  p.x = index % SO_WIDTH;
-  p.y = index / SO_WIDTH;
+  p.x = index % SO_WIDTH + 1;
+  p.y = floor((float)index / (float)SO_WIDTH) + 1;
 
   return p;
 }
 
 /* Conversione punto -> indice */
-int point2index(Point p) { return SO_WIDTH * p.y + p.x; }
+int point2index(Point p) { return (SO_WIDTH * (p.y - 1)) + p.x -1; }
 
 /* Returns taxicab distance between map indexes */
 int indexes_delta(int idx1, int idx2)
 {
   return points_delta(index2point(idx1), index2point(idx2));
+}
+
+int coordinates2index(int x, int y){
+  Point p;
+  p.x = x;
+  p.y = y;
+  return point2index(p);
 }
 
 /* Returns taxicab distance between map points */
@@ -105,4 +119,36 @@ int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status)
   msg.mtype = op;
   msg.mtext = status;
   return msgsnd(queue_id, &msg, sizeof(TaxiStatus), 0);
+}
+
+enum cell_type get_cell_type(int city_id, int position)
+{
+  City city = shmat(city_id, NULL, SHM_RDONLY);
+  enum cell_type type = city[position].type;
+  shmdt(city);
+  return type;
+}
+
+int get_cell_crossing_time(int city_id, int position)
+{
+  City city = shmat(city_id, NULL, SHM_RDONLY);
+  int time = city[position].cross_time;
+  shmdt(city);
+  return time;
+}
+
+void block_signal(int signum)
+{
+  sigset_t mask;
+  bzero(&mask, sizeof mask);
+  sigaddset(&mask, signum);
+  sigprocmask(SIG_BLOCK, &mask, NULL);
+}
+
+void unblock_signal(int signum)
+{
+  sigset_t mask;
+  bzero(&mask, sizeof mask);
+  sigaddset(&mask, signum);
+  sigprocmask(SIG_UNBLOCK, &mask, NULL);
 }

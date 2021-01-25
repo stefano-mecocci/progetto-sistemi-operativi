@@ -1060,7 +1060,6 @@ astar_run (astar_t *as,
         /* Store the start time. 
         gettimeofday (&as->t0, &_tz);*/
         gettimeofday (&as->t0, NULL);
-
         /* Reset? */
         if (as->must_reset) astar_reset (as);
         as->must_reset = 1;

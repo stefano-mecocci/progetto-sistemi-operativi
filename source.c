@@ -62,8 +62,8 @@ void set_handler(int g_taxi_list_mem_id)
 int generate_taxi_request(RequestMsg *req)
 {
   req->mtype = 1;
-  req->mtext[0] = g_origin;
-  req->mtext[1] = generate_valid_pos();
+  req->mtext.origin = g_origin;
+  req->mtext.destination = generate_valid_pos();
   return 0;
 }
 

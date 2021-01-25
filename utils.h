@@ -1,4 +1,6 @@
 #include "data_structures.h"
+#include <math.h>
+
 
 #define DEBUG \
   printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
@@ -54,3 +56,11 @@ extern int rand_int(int min, int max);
 
 /* Enqueues taxi status update */
 extern int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status);
+
+extern enum cell_type get_cell_type(int city_id, int position);
+
+extern int get_cell_crossing_time(int city_id, int position);
+
+extern void block_signal(int signum);
+
+extern void unblock_signal(int signum);

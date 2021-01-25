@@ -30,18 +30,21 @@ This is an example of how to use libastar.
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <errno.h>
+#include <math.h>
 #include "astar/astar.h"
 #include "params.h"
+#include "utils.h"
 
 
-/* #define SO_WIDTH  100 */
-/* #define SO_HEIGHT 100 */
-/*#define NUM_WALLS (SO_WIDTH * SO_HEIGHT) / 50*/
+#define WIDTH  10
+#define HEIGHT 10
+/*#define NUM_WALLS (WIDTH * HEIGHT) / 50*/
 /* #define NUM_WALLS 20
-#define WALLS_RATIO (SO_WIDTH * SO_HEIGHT) / 10 */
+#define WALLS_RATIO (WIDTH * HEIGHT) / 10 */
 
-uint8_t map [SO_WIDTH * SO_HEIGHT];
-
+uint8_t map [WIDTH * HEIGHT];
+#define WALLS 0
 
 #define MAP_FLOOR 0
 #define MAP_WALL  1
@@ -49,14 +52,17 @@ uint8_t map [SO_WIDTH * SO_HEIGHT];
 #define MAP_START 3
 #define MAP_END   4
 
+Point p;
+int start_index = 83;
+int end_index = 67;
 
 /* The characters used in print out the map. */
-char * map_chars = " X.SE";
+char * map_chars = "X .SE";
 
 
-#define set_map(x, y, val) map[(y) * SO_WIDTH + (x)] = (val)
+#define set_map(x, y, val) map[(y) * WIDTH + (x)] = (val)
 
-#define get_map(x, y) map[(y) * SO_WIDTH + (x)]
+#define get_map(x, y) map[(y) * WIDTH + (x)]
 
 
 /* Define the map cost getter, a callback which is used by A* to get */
@@ -81,18 +87,18 @@ map_init()
 	int i, x, y;
 
 	/* First, clear it. */
-	for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++) {
+	for (i = 0; i < WIDTH * HEIGHT; i++) {
 		map[i] = MAP_FLOOR;
 	}
 
 	/* Now, fill it with some random walls (one wall per 50 spaces) */
-	for (i = 0; i < SO_HOLES; i++) {
+	for (i = 0; i < WALLS; i++) {
 		/* Fill random spots with 2-column, 1-row blocks */
-		x = rand() % (SO_WIDTH - 1);
-		y = rand() % SO_HEIGHT;
+		x = rand() % (WIDTH - 1);
+		y = rand() % HEIGHT;
 		/* Don't put anything near the start/end positions. */
 		if (((x <= 6) && (y <= 3)) ||
-		    ((x >= (SO_WIDTH - 7)) && (y >= (SO_HEIGHT - 4)))) {
+		    ((x >= (WIDTH - 7)) && (y >= (HEIGHT - 4)))) {
 			--i;
 			continue;
 		}
@@ -108,8 +114,8 @@ map_print()
 	int x, y;
 
 	printf ("\n");
-	for (y = 0; y < SO_HEIGHT; y++) {
-		for (x = 0; x < SO_WIDTH; x++) {
+	for (y = 0; y < HEIGHT; y++) {
+		for (x = 0; x < WIDTH; x++) {
 			printf ("%c", map_chars [get_map(x,y)]);
 		}
 		printf ("\n");
@@ -130,7 +136,7 @@ int main (int argc, char ** argv)
 	map_init();
 	
 	/* Allocate an A* context. */
-	as = astar_new (SO_WIDTH, SO_HEIGHT, get_map_cost, NULL);
+	as = astar_new (WIDTH, HEIGHT, get_map_cost, NULL);
 
 	/* Set the map origin. This allows us to look for a route in */
 	/* an area smaller than the full game map (by setting the */
@@ -167,16 +173,17 @@ int main (int argc, char ** argv)
 	/* astar_set_movement_mode (as, DIR_8WAY); // This is the default. */
 	
 	/* Starting near the upper left corner of the map. */
-	x0 = 2;
-	y0 = 1;
+	p = index2point(start_index);
+	x0 = p.x;
+	y0 = p.y;
 
 	/* Destination near the lower right corner. */
-	x1 = SO_WIDTH - 3;
-	y1 = SO_HEIGHT - 1;
+	p = index2point(end_index);
+	x1 = p.x;
+	y1 = p.y;
 
 	/* Look for a route. */
 	result = astar_run (as, x0, y0, x1, y1);
-
 	/* What's the result? */
 	printf ("Route from (%d, %d) to (%d, %d). Result: %s (%d)\n",
 		as->x0, as->y0,

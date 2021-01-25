@@ -4,5 +4,11 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.associations": {
+			"memory": "c",
+			"istream": "c",
+			"functional": "c"
+		}
+	}
 }

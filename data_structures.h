@@ -24,7 +24,7 @@ Cella
 */
 typedef struct cell
 {
-  int type;
+  enum cell_type type;
   int capacity;
   int act_capacity;
   int cross_time;
@@ -97,6 +97,11 @@ typedef struct taxi_info
   int mtext[sizeof(int) * 3];
 } TaxiInfo;
 
+typedef struct ride {
+  int origin;
+  int destination;
+} Ride;
+
 /*
 Messaggio di richiesta taxi:
 - mtext indica punti di origine e destinazione [origin, destination] 
@@ -104,8 +109,10 @@ Messaggio di richiesta taxi:
 typedef struct request
 {
   long mtype;
-  int mtext[2];
+  Ride mtext;
 } RequestMsg;
+
+
 
 /*
 Messaggio di richiesta di spawn (per taxigen):

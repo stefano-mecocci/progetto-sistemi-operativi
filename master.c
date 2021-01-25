@@ -38,8 +38,8 @@ pid_t g_changedetector_pid;
 int *g_sources_positions;
 
 /* STATISTICHE */
-int g_travels;           /* viaggi totali (successo, abortiti ecc.) */
-int *g_top_cells;        /* posizione celle più attraversate */
+int g_travels;                /* viaggi totali (successo, abortiti ecc.) */
+int *g_top_cells;             /* posizione celle più attraversate */
 TaxiStats g_most_street;      /* Taxi che ha percorso più celle */
 TaxiStats g_most_long_travel; /* Taxi che ha fatto il viaggio più lungo */
 TaxiStats g_most_requests;    /* Taxi che ha raccolto più richieste */
@@ -410,9 +410,7 @@ void print_city(int city_id)
     {
       printf("\n");
     }
-    else
-    {
-      if (city[i].type == CELL_HOLE)
+    if (city[i].type == CELL_HOLE)
       {
         printf("x ");
       }
@@ -429,7 +427,6 @@ void print_city(int city_id)
           printf("%d ", taxi_num);
         }
       }
-    }
   }
 
   printf("\n\n");
@@ -459,25 +456,28 @@ void clear_memory()
 {
   int err = 0, i;
 
-  err += shmctl(g_city_id, IPC_RMID, NULL);
-  err += semctl(g_sync_sems, -1, IPC_RMID);
-  err += semctl(g_city_sems_op, -1, IPC_RMID);
-  err += semctl(g_city_sems_cap, -1, IPC_RMID);
-  err += msgctl(g_taxi_info_msq, IPC_RMID, NULL);
-  err += msgctl(g_requests_msq, IPC_RMID, NULL);
-  err += msgctl(g_taxi_spawn_msq, IPC_RMID, NULL);
-  for(i = 0; i < SO_SOURCES; i++){
-    err += msgctl(g_origin_msq[i], IPC_RMID, NULL);
+  err = shmctl(g_city_id, IPC_RMID, NULL);
+  DEBUG;
+  err = semctl(g_sync_sems, -1, IPC_RMID);
+  DEBUG;
+  err = semctl(g_city_sems_op, -1, IPC_RMID);
+  DEBUG;
+  err = semctl(g_city_sems_cap, -1, IPC_RMID);
+  DEBUG;
+  err = msgctl(g_taxi_info_msq, IPC_RMID, NULL);
+  DEBUG;
+  err = msgctl(g_requests_msq, IPC_RMID, NULL);
+  DEBUG;
+  err = msgctl(g_taxi_spawn_msq, IPC_RMID, NULL);
+  DEBUG;
+  for (i = 0; i < SO_SOURCES; i++)
+  {
+    err = msgctl(g_origin_msq[i], IPC_RMID, NULL);
+    DEBUG;
   }
 
   free(g_top_cells);
   free(g_source_pids);
-
-  if (err < 0)
-  {
-    DEBUG;
-    exit(EXIT_FAILURE);
-  }
 }
 
 /* Signal handler del processo master */
@@ -486,17 +486,19 @@ void master_handler(int signum)
   int i, err;
   char selection;
 
+  printf("signum=%d\n", signum);
+
   switch (signum)
   {
-  case SIGINT: /* User paused from terminal */
+  case SIGINT:                      /* User paused from terminal */
     send_signal_to_taxigen(SIGINT); /* taxigen must stop by itself other sub processes */
     send_signal_to_changedetector(SIGSTOP);
     send_signal_to_mastertimer(SIGSTOP);
     send_signal_to_sources(SIGSTOP);
 
+    sleep_for(1, 0);
     fflush(stdout);
     fflush(stderr);
-    sleep_for(1, 0);
     printf("Press q to quit or any key to continue.\n");
     scanf("%c", &selection);
     if (selection != 'q')
@@ -518,11 +520,11 @@ void master_handler(int signum)
       exit(EXIT_ERROR);
     }
     break;
-  case SIGTERM: /* Interrupts the simulation - brutally */    
+  case SIGTERM: /* Interrupts the simulation - brutally */
     send_signal_to_taxigen(SIGTERM);
     send_signal_to_changedetector(SIGTERM);
     send_signal_to_mastertimer(SIGTERM);
-    send_signal_to_sources(SIGTERM);  
+    send_signal_to_sources(SIGTERM);
 
     clear_memory();
     exit(EXIT_ERROR);
@@ -532,7 +534,7 @@ void master_handler(int signum)
     break;
   case SIGUSR2: /* Interrupts the simulation - gracefully */
     send_signal_to_taxigen(SIGUSR2);
-    send_signal_to_sources(SIGUSR2);  
+    send_signal_to_sources(SIGUSR2);
 
     /* TOCHECK */
     err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, 0, 0);
