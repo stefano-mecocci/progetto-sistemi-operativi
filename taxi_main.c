@@ -32,7 +32,7 @@ int main(int argc, char const *argv[]) {
   direction_t *path;
   int steps = 0;
   
-  init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_op);
+  init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap);
   init_data(atoi(argv[2]), atoi(argv[3]));
   set_handler();
 
@@ -40,8 +40,6 @@ int main(int argc, char const *argv[]) {
     err = sem_op(sync_sems, SEM_SYNC_TAXI, -1, 0);
     DEBUG_RAISE_INT(err);
   }
-
-printf("actual pos (%d, %d)\n", index2point(get_position()).x, index2point(get_position()).y);
 
   /* start_timer(); */
   init_astar();
@@ -55,14 +53,20 @@ printf("actual pos (%d, %d)\n", index2point(get_position()).x, index2point(get_p
       /* gather path to source */
       path = get_path(get_position(), req.mtext.origin, &steps);
       travel(path, steps);
+      if(get_position() != req.mtext.origin){
+        errno = 0;
+        DEBUG_RAISE_INT(-1);
+      }
     }
+    printf("START RIDE\n");
     status.available = FALSE;
     status.pid = getpid();
     status.position = get_position();
     send_taxi_update(taxi_info_msq, PICKUP, status);
     /* gather path to destination */
     path = get_path(get_position(), req.mtext.destination, &steps);
-    travel(path, steps);    
+    travel(path, steps);
+    printf("END RIDE\n");
     status.available = TRUE;
     status.pid = getpid();
     status.position = get_position();

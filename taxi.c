@@ -36,6 +36,7 @@ astar_t *g_as;
 void taxi_handler(int signum);
 void send_spawn_request();
 void send_taxi_data();
+void print_path(direction_t *directions, int steps);
 
 /*
 ====================================
@@ -209,9 +210,6 @@ uint8_t get_map_cost(const uint32_t x, const uint32_t y)
 
 void init_astar()
 {
-  int x0, y0, x1, y1;
-  int result;
-
   /* Allocate an A* context. */
   g_as = astar_new(SO_WIDTH, SO_HEIGHT, get_map_cost, NULL);
   astar_set_origin(g_as, 0, 0);
@@ -225,16 +223,12 @@ direction_t *get_path(int position, int destination, int *steps)
   Point end = index2point(destination);
 
   /* Look for a route. */
-  printf("Finding route sx=%d, sy=%d, ex=%d, ey=%d  \n", start.x, start.y, end.x, end.y);
-  /* BROKEN */
   int result = astar_run(g_as, start.x, start.y, end.x, end.y);
   if (astar_have_route(g_as))
   {
     *steps = astar_get_directions(g_as, &directions);
     DEBUG_RAISE_INT(result);
-    printf("Found route with %d steps\n", *steps);
   }
-  astar_free_directions(directions);
   return directions;
 }
 
@@ -243,25 +237,64 @@ void travel(direction_t *directions, int steps)
   int i, x, y, crossing_time, next_addr;
   TaxiStatus status;
   Point p = index2point(get_position());
-  printf("Travelling toward destination...\n");
-  for (i = 0; i < steps; i++)
+  direction_t *dir = directions;
+  for (i = 0; i < steps; i++, dir++)
   {
+    x = p.x;
+    y = p.y;
     /* Get the next (x, y) co-ordinates of the map. */
-    p.x += astar_get_dx(g_as, *directions);
-    p.y += astar_get_dy(g_as, *directions);
-    printf("step %d: (%d, %d)\n", i + 1, p.x, p.y);
+    p.x += astar_get_dx(g_as, *dir);
+    p.y += astar_get_dy(g_as, *dir);
     next_addr = point2index(p);
+    /* printf("step %d: from %d (%d, %d) to %d (%d, %d)\n", 
+      i + 1, 
+      get_position(),
+      x, 
+      y,
+      next_addr,
+      p.x, 
+      p.y
+    ); */
     crossing_time = get_cell_crossing_time(g_city_id, next_addr);
-    
-    sem_release(g_city_sems_cap, get_position());
+
     sem_reserve(g_city_sems_cap, next_addr);
-    
+    sem_release(g_city_sems_cap, get_position());
+
     set_position(next_addr);
+    printf("wait for %f\n", (float)crossing_time/(float)1000000000);
     sleep_for(0, crossing_time);
 
     status.available = FALSE;
     status.pid = getpid();
     status.position = get_position();
     send_taxi_update(g_taxi_info_msq, BASICMOV, status);
+  }
+
+  astar_free_directions(directions);
+}
+
+
+void print_path(direction_t *directions, int steps)
+{
+  int i, x, y, crossing_time, next_addr;
+  TaxiStatus status;
+  Point p = index2point(get_position());
+  for (i = 0; i < steps; i++, directions++)
+  {
+    x = p.x;
+    y = p.y;
+    /* Get the next (x, y) co-ordinates of the map. */
+    p.x += astar_get_dx(g_as, *directions);
+    p.y += astar_get_dy(g_as, *directions);
+    next_addr = point2index(p);
+    printf("step %d: %d -> %d ; (%d, %d) -> (%d, %d)\n", 
+      i + 1, 
+      get_position(),
+      next_addr,
+      x, 
+      y,
+      p.x, 
+      p.y
+    );
   }
 }

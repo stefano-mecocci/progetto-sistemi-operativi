@@ -410,9 +410,7 @@ void print_city(int city_id)
     {
       printf("\n");
     }
-    else
-    {
-      if (city[i].type == CELL_HOLE)
+    if (city[i].type == CELL_HOLE)
       {
         printf("x ");
       }
@@ -429,7 +427,6 @@ void print_city(int city_id)
           printf("%d ", taxi_num);
         }
       }
-    }
   }
 
   printf("\n\n");

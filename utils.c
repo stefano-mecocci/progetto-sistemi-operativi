@@ -10,22 +10,25 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <sys/msg.h>
 #include <signal.h>
 #include <math.h>
+#include <time.h>
+#include <string.h>
 
 /* Conversione indice -> punto */
 Point index2point(int index)
 {
   Point p; 
 
-  p.x = index % SO_WIDTH;
-  p.y = floor((float)index / (float)SO_WIDTH);
+  p.x = index % SO_WIDTH + 1;
+  p.y = floor((float)index / (float)SO_WIDTH) + 1;
 
   return p;
 }
 
 /* Conversione punto -> indice */
-int point2index(Point p) { return SO_WIDTH * p.y + p.x; }
+int point2index(Point p) { return (SO_WIDTH * (p.y - 1)) + p.x -1; }
 
 /* Returns taxicab distance between map indexes */
 int indexes_delta(int idx1, int idx2)
