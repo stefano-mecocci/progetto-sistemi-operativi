@@ -10,6 +10,7 @@
 
 char *get_status_by_id(long op);
 char *get_string_by_bool(enum Bool val);
+void print_queue_taxi_info(int msqid);
 
 int main(int argc, char const *argv[])
 {

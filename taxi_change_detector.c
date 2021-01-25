@@ -12,6 +12,9 @@
 #include <sys/msg.h>
 #include <sys/ipc.h>
 
+void update_taxi_availability_list(TaxiActionMsg update);
+void update_taxi_status();
+
 int taxi_info_msq_id;
 TaxiStatus *g_taxi_status_list;
 

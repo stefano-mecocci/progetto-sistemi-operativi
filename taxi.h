@@ -22,10 +22,12 @@ extern void receive_ride_request(int requests_msq, RequestMsg *req);
 
 extern int get_position();
 
+extern void set_position(int addr);
+
 extern void init_astar();
 
-extern direction_t *get_path(int position, int destination);
+extern direction_t *get_path(int position, int destination, int *steps);
 
-extern void travel(direction_t *directions);
+extern void travel(direction_t *directions, int steps);
 
 #endif

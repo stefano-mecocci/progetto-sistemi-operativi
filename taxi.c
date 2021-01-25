@@ -80,6 +80,11 @@ int get_position()
   return g_pos;
 }
 
+void set_position(int addr)
+{
+  g_pos = addr;
+}
+
 void start_timer()
 {
   pid_t pid = fork();
@@ -210,7 +215,10 @@ void send_spawn_request()
 
 uint8_t get_map_cost(const uint32_t x, const uint32_t y)
 {
-  return get_cell_type(g_city_id, coordinates2index(x, y)) == CELL_HOLE ? COST_BLOCKED : 1;
+  int index = coordinates2index(x, y);
+  enum cell_type type = get_cell_type(g_city_id, index);
+  uint8_t cost = type == CELL_HOLE ? COST_BLOCKED : 1;
+  return cost;
 }
 
 void init_astar()
@@ -224,13 +232,11 @@ void init_astar()
   astar_set_movement_mode(g_as, DIR_CARDINAL);
 }
 
-direction_t *get_path(int position, int destination)
+direction_t *get_path(int position, int destination, int *steps)
 {
   direction_t *directions;
   Point start = index2point(position);
   Point end = index2point(destination);
-  int num_steps;
-
 
   /* Look for a route. */
   printf("Finding route sx=%d, sy=%d, ex=%d, ey=%d  \n", start.x, start.y, end.x, end.y);
@@ -238,15 +244,34 @@ direction_t *get_path(int position, int destination)
   int result = astar_run(g_as, start.x, start.y, end.x, end.y);
   if (astar_have_route(g_as))
   {
-    num_steps = astar_get_directions(g_as, &directions);
-  DEBUG_RAISE_INT(result);
-    printf("Found route with %d steps\n", num_steps);
+    *steps = astar_get_directions(g_as, &directions);
+    DEBUG_RAISE_INT(result);
+    printf("Found route with %d steps\n", *steps);
   }
   astar_free_directions(directions);
   return directions;
 }
 
-void travel(direction_t *directions)
+void travel(direction_t *directions, int steps)
 {
+  int i, x, y, crossing_time, next_addr;
+  TaxiStatus status;
+  Point p = index2point(get_position());
   printf("Travelling toward destination...\n");
+  for (i = 0; i < steps; i++)
+  {
+    /* Get the next (x, y) co-ordinates of the map. */
+    p.x += astar_get_dx(g_as, *directions);
+    p.y += astar_get_dy(g_as, *directions);
+    printf("step %d: (%d, %d)\n", i + 1, p.x, p.y);
+    next_addr = point2index(p);
+    crossing_time = get_cell_crossing_time(g_city_id, next_addr);
+    sleep_for(0, crossing_time);
+    set_position(next_addr);
+    
+    status.available = FALSE;
+    status.pid = getpid();
+    status.position = get_position();
+    send_taxi_update(g_taxi_info_msq, BASICMOV, status);
+  }
 }

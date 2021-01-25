@@ -30,8 +30,10 @@ This is an example of how to use libastar.
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <errno.h>
 #include "astar/astar.h"
 #include "params.h"
+#include "utils.h"
 
 
 /* #define SO_WIDTH  100 */
@@ -41,7 +43,7 @@ This is an example of how to use libastar.
 #define WALLS_RATIO (SO_WIDTH * SO_HEIGHT) / 10 */
 
 uint8_t map [SO_WIDTH * SO_HEIGHT];
-
+#define WALLS 20
 
 #define MAP_FLOOR 0
 #define MAP_WALL  1
@@ -86,7 +88,7 @@ map_init()
 	}
 
 	/* Now, fill it with some random walls (one wall per 50 spaces) */
-	for (i = 0; i < SO_HOLES; i++) {
+	for (i = 0; i < WALLS; i++) {
 		/* Fill random spots with 2-column, 1-row blocks */
 		x = rand() % (SO_WIDTH - 1);
 		y = rand() % SO_HEIGHT;
@@ -176,7 +178,6 @@ int main (int argc, char ** argv)
 
 	/* Look for a route. */
 	result = astar_run (as, x0, y0, x1, y1);
-
 	/* What's the result? */
 	printf ("Route from (%d, %d) to (%d, %d). Result: %s (%d)\n",
 		as->x0, as->y0,

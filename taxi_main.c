@@ -30,6 +30,7 @@ int main(int argc, char const *argv[]) {
   RequestMsg req;
   TaxiStatus status;
   direction_t *path;
+  int steps = 0;
   
   init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id);
   init_data(atoi(argv[2]), atoi(argv[3]));
@@ -45,21 +46,21 @@ int main(int argc, char const *argv[]) {
 
   while(TRUE){
     receive_ride_request(requests_msq, &req);
-    printf("Received new ride request: source=%d; destination=%d", req.mtext.origin, req.mtext.destination);
+    printf("Received new ride request: source=%d; destination=%d\n", req.mtext.origin, req.mtext.destination);
     /* Stop taxi timer */
     if(req.mtext.origin != get_position()){
       printf("First moving to source for pickup\n");
       /* gather path to source */
-      path = get_path(get_position(), req.mtext.origin);
-      travel(path);
+      path = get_path(get_position(), req.mtext.origin, &steps);
+      travel(path, steps);
     }
     status.available = FALSE;
     status.pid = getpid();
     status.position = get_position();
     send_taxi_update(taxi_info_msq, PICKUP, status);
     /* gather path to destination */
-    path = get_path(get_position(), req.mtext.destination);
-    travel(path);    
+    path = get_path(get_position(), req.mtext.destination, &steps);
+    travel(path, steps);    
     status.available = TRUE;
     status.pid = getpid();
     status.position = get_position();

@@ -4,7 +4,9 @@
 #include "data_structures.h"
 #include "params.h"
 #include <stdlib.h>
+#include <errno.h>
 #include <stdio.h>
+#include <sys/shm.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
@@ -30,7 +32,9 @@ int indexes_delta(int idx1, int idx2)
 }
 
 int coordinates2index(int x, int y){
-  Point p = {x, y};
+  Point p;
+  p.x = x;
+  p.y = y;
   return point2index(p);
 }
 
@@ -114,8 +118,16 @@ int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status)
 
 enum cell_type get_cell_type(int city_id, int position)
 {
-  City city = shmat(city_id, NULL, 0);
+  City city = shmat(city_id, NULL, SHM_RDONLY);
   enum cell_type type = city[position].type;
   shmdt(city);
   return type;
+}
+
+int get_cell_crossing_time(int city_id, int position)
+{
+  City city = shmat(city_id, NULL, SHM_RDONLY);
+  int time = city[position].cross_time;
+  shmdt(city);
+  return time;
 }
