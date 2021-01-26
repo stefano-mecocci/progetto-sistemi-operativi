@@ -4,6 +4,7 @@
 #include "data_structures.h"
 #include "params.h"
 #include "utils.h"
+#include "sem_lib.h"
 #include "astar/astar.h"
 
 #include <errno.h>
@@ -25,6 +26,7 @@ int g_taxi_spawn_msq;
 int g_taxi_info_msq;
 int g_sync_sems;
 int g_city_id;
+int g_city_sems_cap;
 
 pid_t g_master_pid, g_timer_pid;
 TaxiStats g_data;
@@ -33,10 +35,9 @@ astar_t *g_as;
 
 void taxi_handler(int signum);
 void send_spawn_request();
-void block_signal(int signum);
-void unblock_signal(int signum);
 void send_taxi_data();
 void reset_taxi_timer();
+void print_path(direction_t *directions, int steps);
 
 /*
 ====================================
@@ -58,12 +59,13 @@ void set_handler()
   sigaction(SIGUSR1, &act, NULL);
 }
 
-void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, int city_id)
+void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, int city_id, int city_sems_cap)
 {
   g_taxi_spawn_msq = taxi_spawn_msq;
   g_taxi_info_msq = taxi_info_msq;
   g_sync_sems = sync_sems;
   g_city_id = city_id;
+  g_city_sems_cap = city_sems_cap;
 }
 
 void init_data(int master_pid, int pos)
@@ -139,22 +141,6 @@ void send_taxi_data()
   DEBUG_RAISE_INT(g_master_pid, err);
 }
 
-void block_signal(int signum)
-{
-  sigset_t mask;
-  bzero(&mask, sizeof mask);
-  sigaddset(&mask, signum);
-  sigprocmask(SIG_BLOCK, &mask, NULL);
-}
-
-void unblock_signal(int signum)
-{
-  sigset_t mask;
-  bzero(&mask, sizeof mask);
-  sigaddset(&mask, signum);
-  sigprocmask(SIG_UNBLOCK, &mask, NULL);
-}
-
 void taxi_handler(int signum)
 {
   int i, err;
@@ -166,6 +152,7 @@ void taxi_handler(int signum)
   {
   case SIGINT:
     kill(g_timer_pid, SIGSTOP);
+    raise(SIGSTOP);
     break;
 
   case SIGCONT:
@@ -224,9 +211,6 @@ uint8_t get_map_cost(const uint32_t x, const uint32_t y)
 
 void init_astar()
 {
-  int x0, y0, x1, y1;
-  int result;
-
   /* Allocate an A* context. */
   g_as = astar_new(SO_WIDTH, SO_HEIGHT, get_map_cost, NULL);
   astar_set_origin(g_as, 0, 0);
@@ -240,16 +224,12 @@ direction_t *get_path(int position, int destination, int *steps)
   Point end = index2point(destination);
 
   /* Look for a route. */
-  printf("Finding route sx=%d, sy=%d, ex=%d, ey=%d  \n", start.x, start.y, end.x, end.y);
-  /* BROKEN */
   int result = astar_run(g_as, start.x, start.y, end.x, end.y);
   if (astar_have_route(g_as))
   {
     *steps = astar_get_directions(g_as, &directions);
     DEBUG_RAISE_INT(result);
-    printf("Found route with %d steps\n", *steps);
   }
-  astar_free_directions(directions);
   return directions;
 }
 
@@ -264,18 +244,33 @@ void travel(direction_t *directions, int steps)
   int i, x, y, crossing_time, next_addr;
   TaxiStatus status;
   Point p = index2point(get_position());
-  printf("Travelling toward destination...\n");
-  for (i = 0; i < steps; i++)
+  direction_t *dir = directions;
+  for (i = 0; i < steps; i++, dir++)
   {
+    x = p.x;
+    y = p.y;
     /* Get the next (x, y) co-ordinates of the map. */
-    p.x += astar_get_dx(g_as, *directions);
-    p.y += astar_get_dy(g_as, *directions);
-    printf("step %d: (%d, %d)\n", i + 1, p.x, p.y);
+    p.x += astar_get_dx(g_as, *dir);
+    p.y += astar_get_dy(g_as, *dir);
     next_addr = point2index(p);
+    /* printf("step %d: from %d (%d, %d) to %d (%d, %d)\n", 
+      i + 1, 
+      get_position(),
+      x, 
+      y,
+      next_addr,
+      p.x, 
+      p.y
+    ); */
     crossing_time = get_cell_crossing_time(g_city_id, next_addr);
-    sleep_for(0, crossing_time);
+
+    sem_reserve(g_city_sems_cap, next_addr);
+    sem_release(g_city_sems_cap, get_position());
+
     set_position(next_addr);
-    
+    printf("wait for %f\n", (float)crossing_time/(float)1000000000);
+    sleep_for(0, crossing_time);
+
     status.available = FALSE;
     status.pid = getpid();
     status.position = get_position();
@@ -287,8 +282,36 @@ void travel(direction_t *directions, int steps)
 
     send_taxi_update(g_taxi_info_msq, BASICMOV, status);
   }
+
+  astar_free_directions(directions);
 }
 
 void reset_taxi_timer() {
   kill(g_timer_pid, SIGUSR1);
+}
+
+
+void print_path(direction_t *directions, int steps)
+{
+  int i, x, y, crossing_time, next_addr;
+  TaxiStatus status;
+  Point p = index2point(get_position());
+  for (i = 0; i < steps; i++, directions++)
+  {
+    x = p.x;
+    y = p.y;
+    /* Get the next (x, y) co-ordinates of the map. */
+    p.x += astar_get_dx(g_as, *directions);
+    p.y += astar_get_dy(g_as, *directions);
+    next_addr = point2index(p);
+    printf("step %d: %d -> %d ; (%d, %d) -> (%d, %d)\n", 
+      i + 1, 
+      get_position(),
+      next_addr,
+      x, 
+      y,
+      p.x, 
+      p.y
+    );
+  }
 }

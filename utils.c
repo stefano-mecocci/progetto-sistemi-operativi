@@ -10,20 +10,25 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <sys/msg.h>
+#include <signal.h>
+#include <math.h>
+#include <time.h>
+#include <string.h>
 
 /* Conversione indice -> punto */
 Point index2point(int index)
 {
-  Point p;
+  Point p; 
 
-  p.x = index % SO_WIDTH;
-  p.y = index / SO_WIDTH;
+  p.x = index % SO_WIDTH + 1;
+  p.y = floor((float)index / (float)SO_WIDTH) + 1;
 
   return p;
 }
 
 /* Conversione punto -> indice */
-int point2index(Point p) { return SO_WIDTH * p.y + p.x; }
+int point2index(Point p) { return (SO_WIDTH * (p.y - 1)) + p.x -1; }
 
 /* Returns taxicab distance between map indexes */
 int indexes_delta(int idx1, int idx2)
@@ -130,4 +135,20 @@ int get_cell_crossing_time(int city_id, int position)
   int time = city[position].cross_time;
   shmdt(city);
   return time;
+}
+
+void block_signal(int signum)
+{
+  sigset_t mask;
+  bzero(&mask, sizeof mask);
+  sigaddset(&mask, signum);
+  sigprocmask(SIG_BLOCK, &mask, NULL);
+}
+
+void unblock_signal(int signum)
+{
+  sigset_t mask;
+  bzero(&mask, sizeof mask);
+  sigaddset(&mask, signum);
+  sigprocmask(SIG_UNBLOCK, &mask, NULL);
 }

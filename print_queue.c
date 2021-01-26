@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include "data_structures.h"
 #include "utils.h"
 #include <stdlib.h>
@@ -22,23 +24,21 @@ int main(int argc, char const *argv[])
 
 void print_queue_taxi_info(int msqid)
 {
+    int length;
     TaxiActionMsg msg;
+    struct msqid_ds *buf;
     printf("Unprocessed taxi status changes: \n");
-    while (TRUE)
+    msgctl(msqid, IPC_STAT, buf);
+    length = buf->msg_qnum;
+    while (length-- > 0)
     {
-        msgrcv(msqid, &msg, sizeof(TaxiActionMsg), 0, IPC_NOWAIT);
-        if (errno != ENOMSG)
-        {
-            printf("status=%s, pid=%d, available=%s, position=%d\n",
-            get_status_by_id(msg.mtype), 
-            msg.mtext.pid, 
-            get_string_by_bool(msg.mtext.available), 
-            msg.mtext.position);
-        }
-        else
-        {
-            break;
-        }
+        msgrcv(msqid, &msg, sizeof(TaxiActionMsg), 0, IPC_NOWAIT | MSG_COPY);
+        printf("status=%s, pid=%d, available=%s, position=%d\n",
+                get_status_by_id(msg.mtype), 
+                msg.mtext.pid, 
+                get_string_by_bool(msg.mtext.available), 
+                msg.mtext.position
+            );
     }
 }
 

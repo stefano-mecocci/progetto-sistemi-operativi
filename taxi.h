@@ -9,7 +9,7 @@
 extern void set_handler();
 
 /* Inizializza dati IPC che servono globali */
-extern void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, int city_id);
+extern void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, int city_id, int city_sems_cap);
 
 /* Inizializza altri dati globali */
 extern void init_data(int master_pid, int pos);

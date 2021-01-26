@@ -389,9 +389,7 @@ void print_city(int city_id)
     {
       printf("\n");
     }
-    else
-    {
-      if (city[i].type == CELL_HOLE)
+    if (city[i].type == CELL_HOLE)
       {
         printf("x ");
       }
@@ -408,7 +406,6 @@ void print_city(int city_id)
           printf("%d ", taxi_num);
         }
       }
-    }
   }
 
   printf("\n\n");
@@ -467,6 +464,8 @@ void master_handler(int signum)
   int i, err;
   char selection;
 
+  printf("signum=%d\n", signum);
+
   switch (signum)
   {
   case SIGINT:                      /* User paused from terminal */
@@ -475,9 +474,9 @@ void master_handler(int signum)
     send_signal_to_mastertimer(SIGSTOP);
     send_signal_to_sources(SIGSTOP);
 
+    sleep_for(1, 0);
     fflush(stdout);
     fflush(stderr);
-    sleep_for(1, 0);
     printf("Press q to quit or any key to continue.\n");
     scanf("%c", &selection);
     if (selection != 'q')
