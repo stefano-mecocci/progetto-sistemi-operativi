@@ -37,13 +37,6 @@ pid_t g_mastertimer_pid;
 pid_t g_changedetector_pid;
 int *g_sources_positions;
 
-/* STATISTICHE */
-int g_travels;                /* viaggi totali (successo, abortiti ecc.) */
-int *g_top_cells;             /* posizione celle più attraversate */
-TaxiStats g_most_street;      /* Taxi che ha percorso più celle */
-TaxiStats g_most_long_travel; /* Taxi che ha fatto il viaggio più lungo */
-TaxiStats g_most_requests;    /* Taxi che ha raccolto più richieste */
-
 void init_taxi(TaxiStats *taxi);
 void master_handler(int signum);
 void clear_memory();
@@ -53,10 +46,8 @@ void place_hole(int pos, City city);
 void create_source();
 int generate_origin_point(int, int);
 void send_source_origin(int origin_msq, int origin);
-void update_stats();
 void update_taxi_stats(int taxi_msg[]);
 void copy_taxi_data(int taxi_msg[], TaxiStats *taxi);
-void print_stats();
 
 /*
 ====================================
@@ -172,25 +163,13 @@ void init_data()
   g_taxigen_pid = -1;
   g_sources_positions = malloc(sizeof(int) * SO_SOURCES);
 
-  g_travels = 0;
-  g_top_cells = malloc(sizeof(int) * SO_TOP_CELLS);
-  init_taxi(&g_most_street);
-  init_taxi(&g_most_long_travel);
-  init_taxi(&g_most_requests);
-
   DEBUG_RAISE_ADDR(g_source_pids);
   DEBUG_RAISE_ADDR(g_sources_positions);
-  DEBUG_RAISE_ADDR(g_top_cells);
 
   for (i = 0; i < SO_SOURCES; i++)
   {
     g_source_pids[i] = -1;
     g_sources_positions[i] = -1;
-  }
-
-  for (i = 0; i < SO_TOP_CELLS; i++)
-  {
-    g_top_cells[i] = -1;
   }
 }
 
@@ -479,7 +458,6 @@ void clear_memory()
     DEBUG;
   }
 
-  free(g_top_cells);
   free(g_source_pids);
 }
 
@@ -541,8 +519,9 @@ void master_handler(int signum)
     err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, 0, 0);
     DEBUG_RAISE_INT(err);
 
+    /* MOVED to change_detector 
     update_stats();
-    print_stats();
+    print_stats(); */
 
     clear_memory();
     exit(EXIT_TIMER);
@@ -588,8 +567,8 @@ void send_signal_to_sources(int signal)
   }
 }
 
-/* Stampa statistiche di partita */
-void print_stats()
+/* DEPRECATED Stampa statistiche di partita */
+/* void print_stats()
 {
   printf("\n------------------------------------\n");
   printf("Viaggi totali: %d\n", g_travels);
@@ -599,10 +578,10 @@ void print_stats()
          g_most_long_travel.max_travel_time);
   printf("- ha raccolto più richieste: %d\n", g_most_requests.requests);
   printf("------------------------------------\n\n");
-}
+} */
 
-/* TOMOVE to taxi_change_detector - Aggiorna le statistiche della partita */
-void update_stats()
+/* MOVED to taxi_change_detector - Aggiorna le statistiche della partita */
+/* void update_stats()
 {
   TaxiInfo msg;
   int err;
@@ -623,10 +602,10 @@ void update_stats()
       break;
     }
   }
-}
+} */
 
-/* Aggiorna le statistiche di un taxi */
-void update_taxi_stats(int taxi_msg[])
+/* REMOVED Aggiorna le statistiche di un taxi */
+/* void update_taxi_stats(int taxi_msg[])
 {
   if (taxi_msg[0] > g_most_street.crossed_cells)
   {
@@ -642,15 +621,15 @@ void update_taxi_stats(int taxi_msg[])
   {
     copy_taxi_data(taxi_msg, &g_most_requests);
   }
-}
+} */
 
-/* Copia i dati di un taxi dal messaggio alla struct */
-void copy_taxi_data(int taxi_msg[], TaxiStats *taxi)
+/* REMOVED Copia i dati di un taxi dal messaggio alla struct */
+/* void copy_taxi_data(int taxi_msg[], TaxiStats *taxi)
 {
   taxi->crossed_cells = taxi_msg[0];
   taxi->max_travel_time = taxi_msg[1];
   taxi->requests = taxi_msg[2];
-}
+} */
 
 /* Invia l'origine alla sorgnete */
 void send_source_origin(int origin_msq, int origin)

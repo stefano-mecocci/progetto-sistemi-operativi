@@ -62,7 +62,7 @@ typedef struct taxi_status
   pid_t pid;
   enum Bool available;
   int position;
-
+  TaxiStats taxi_stats;
 } TaxiStatus;
 
 enum TaxiOps
