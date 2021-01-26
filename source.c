@@ -18,7 +18,6 @@ int g_origin;
 int g_requests_msq;
 int g_city_id;
 int g_origin_msq;
-int g_taxi_list_mem_id;
 
 void source_handler(int signum);
 int generate_valid_pos();
@@ -38,15 +37,7 @@ int create_origin_msq()
   return id;
 }
 
-void init_data(int requests_msq, int city_id, int taxi_list_mem_id)
-{
-  g_origin = -1;
-  g_requests_msq = requests_msq;
-  g_city_id = city_id;
-  g_taxi_list_mem_id = taxi_list_mem_id;
-}
-
-void set_handler(int g_taxi_list_mem_id)
+void set_handler()
 {
   struct sigaction act;
   bzero(&act, sizeof act);
@@ -135,40 +126,4 @@ int generate_valid_pos()
 
   shmdt(city);
   return pos;
-}
-
-/* DEPRECATED(Can't assign taxi during req creation) - Returns the nearest taxi pid to g_origin - needed for ride request */
-pid_t find_nearest_taxi_pid()
-{
-  int min_distance = SO_WIDTH + SO_HEIGHT;
-  int i = 0, err, current_distance;
-  pid_t pid = 0;
-  TaxiStatus taxi;
-  TaxiStatus *taxis = shmat(g_taxi_list_mem_id, NULL, 0);
-
-  while (i < SO_TAXI && min_distance != 0)
-  {
-    taxi = taxis[i];
-
-    current_distance = indexes_delta(taxi.position, g_origin);
-    if (taxi.available == TRUE && current_distance < min_distance)
-    {
-      /* use (dx + dy) to calc taxicab distance - we already have a decent approximation
-      instead of using a* (more precise -> heavier)  */
-      min_distance = current_distance;
-      pid = taxi.pid;
-    }
-
-    i++;
-  }
-
-  shmdt(taxis);
-
-  if (pid == 0)
-  {
-    /* raise error - no available taxi found */
-    return -1;
-  }
-
-  return pid;
 }
