@@ -102,17 +102,20 @@ typedef struct ride {
   int destination;
 } Ride;
 
+
+enum RequestType {
+  NORMAL = 1,
+  FAILED = 2
+};
 /*
 Messaggio di richiesta taxi:
 - mtext indica punti di origine e destinazione [origin, destination] 
 */
 typedef struct request
 {
-  long mtype;
+  long mtype; /* mtype is a value between RequestType enum */
   Ride mtext;
 } RequestMsg;
-
-
 
 /*
 Messaggio di richiesta di spawn (per taxigen):

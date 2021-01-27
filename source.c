@@ -59,7 +59,7 @@ void set_handler()
 
 int generate_taxi_request(RequestMsg *req)
 {
-  req->mtype = 1;
+  req->mtype = (int)NORMAL;
   req->mtext.origin = g_origin;
   req->mtext.destination = generate_valid_pos();
   return 0;
