@@ -14,15 +14,18 @@ int main(int argc, char const *argv[]) {
   int origin_msq = create_origin_msq();
   RequestMsg req;
 
+	srand(time(NULL));
+
   set_handler();
+  init_data(requests_msq, city_id);
   err = sem_op(sync_sems, SEM_SYNC_SOURCES, -1, 0);
   DEBUG_RAISE_INT(err);
   save_source_position(origin_msq);
 
   while (TRUE) {
-    sleep_for(3, 0);
     generate_taxi_request(&req);
     send_taxi_request(&req);
+    sleep_for(3, 0);
   }
 
   return 0;

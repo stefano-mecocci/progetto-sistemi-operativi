@@ -1,3 +1,6 @@
+#define _GNU_SOURCE
+
+#include "params.h"
 #include "data_structures.h"
 #include "params.h"
 #include "sem_lib.h"
@@ -15,11 +18,13 @@
 #define FILENAME "changes.txt"
 
 void update_taxi_availability_list(TaxiActionMsg update);
-void update_taxi_status();
 void init_taxi_stats();
+void update_taxi_status(enum Bool );
 void write_update_to_file(TaxiActionMsg msg);
 char *get_status_by_id(long op);
 char *get_string_by_bool(enum Bool val);
+void set_handler();
+void taxi_change_detector_handler(int signum);
 FILE *file;
 
 /* STATISTICHE */
@@ -32,19 +37,22 @@ TaxiStats g_taxi_most_requests;  /* Taxi che ha raccolto più richieste */
 int g_taxi_info_msq_id;
 TaxiStatus *g_taxi_status_list;
 
-int main(int argc, char const *argv[]) {
-  g_taxi_info_msq_id = read_id_from_file("taxi_info_msq");
-  init_taxi_stats();
-
-  create_taxi_availability_list();
-  file = fopen(FILENAME, "w+");
-  if (file == NULL) {
-    printf("Error opening file!\n");
-    exit(1);
-  }
-  while (TRUE) {
-    update_taxi_status();
-  }
+int main(int argc, char const *argv[])
+{
+    set_handler();
+    g_taxi_info_msq_id = read_id_from_file("taxi_info_msq");
+    init_taxi_stats();
+    create_taxi_availability_list();
+    file = fopen(FILENAME, "w+");
+    if (file == NULL)
+    {
+        printf("Error opening file!\n");
+        exit(1);
+    }
+    while (TRUE)
+    {
+        update_taxi_status(FALSE);
+    }
 
   atexit(fclose(file));
   return 0;
@@ -99,15 +107,36 @@ void create_taxi_availability_list() {
 }
 
 /* Gather taxi status updates */
-void update_taxi_status() {
-  TaxiActionMsg msg;
-  int err;
+void update_taxi_status(enum Bool empty)
+{
+    TaxiActionMsg msg;
+    int err;
 
-  err = msgrcv(g_taxi_info_msq_id, &msg, sizeof msg.mtext, 0, 0);
-  DEBUG_RAISE_INT(err);
+    if (empty == TRUE)
+    {
+        while (TRUE)
+        {
+            err = msgrcv(g_taxi_info_msq_id, &msg, sizeof msg.mtext, 0, IPC_NOWAIT);
+            if (errno != ENOMSG)
+            {
+                DEBUG_RAISE_INT(err);
+                update_taxi_availability_list(msg);
+                write_update_to_file(msg);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        err = msgrcv(g_taxi_info_msq_id, &msg, sizeof msg.mtext, 0, 0);
+        DEBUG_RAISE_INT(err);
 
-  update_taxi_availability_list(msg);
-  write_update_to_file(msg);
+        update_taxi_availability_list(msg);
+        write_update_to_file(msg);
+    }
 }
 
 /* updates taxi status in shared memory */
@@ -187,6 +216,35 @@ char *get_status_by_id(long op) {
     break;
   case 6:
     return "ABORTED";
+    break;
+  }
+}
+
+void set_handler()
+{
+  struct sigaction act;
+  bzero(&act, sizeof act);
+
+  act.sa_handler = taxi_change_detector_handler;
+
+  sigaction(SIGTERM, &act, NULL);
+}
+
+
+/* Signal handler del processo taxi_change_detector */
+void taxi_change_detector_handler(int signum)
+{
+  int i, err;
+  char selection;
+
+  switch (signum)
+  {
+  case SIGTERM: /* Interrupts the simulation - politely ask a program to terminate - can be blocked, handled, and ignored */
+    update_taxi_status(TRUE);
+
+    exit(EXIT_SUCCESS);
+    break;
+  default:
     break;
   }
 }

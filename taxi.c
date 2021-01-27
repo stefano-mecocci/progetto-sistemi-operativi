@@ -35,7 +35,6 @@ astar_t *g_as;
 
 void taxi_handler(int signum);
 void send_spawn_request();
-void send_taxi_data();
 void reset_taxi_timer();
 void print_path(direction_t *directions, int steps);
 
@@ -51,6 +50,7 @@ void set_handler()
   bzero(&act, sizeof act);
 
   act.sa_handler = taxi_handler;
+  act.sa_flags = SA_NODEFER;
 
   sigaction(SIGINT, &act, NULL);
   sigaction(SIGCONT, &act, NULL);
@@ -126,21 +126,6 @@ void receive_ride_request(int requests_msq, RequestMsg *req)
 ====================================
 */
 
-/* DEPRECATED(use send_taxi_update instead) - Invia i dati del taxi a master */
-void send_taxi_data()
-{
-  TaxiInfo info;
-  int err;
-
-  info.mtype = 1;
-  info.mtext[0] = g_data.crossed_cells;
-  info.mtext[1] = g_data.max_travel_time;
-  info.mtext[2] = g_data.requests;
-
-  err = msgsnd(g_taxi_info_msq, &info, sizeof info.mtext, 0);
-  DEBUG_RAISE_INT(g_master_pid, err);
-}
-
 void taxi_handler(int signum)
 {
   int i, err;
@@ -160,27 +145,26 @@ void taxi_handler(int signum)
     break;
 
   case SIGTERM:
-
+    kill(g_timer_pid, SIGTERM);
     exit(EXIT_ERROR);
     break;
 
   case SIGUSR1: /* TIMEOUT */
     block_signal(SIGUSR2);
 
-    /* send_taxi_data(); */
     send_taxi_update(g_taxi_info_msq, TIMEOUT, status);
     send_spawn_request();
-    err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
-    DEBUG_RAISE_INT(g_master_pid, err);
 
     unblock_signal(SIGUSR2);
     exit(EXIT_TIMER);
     break;
 
   case SIGUSR2: /* END OF SIMULATION */
+    if (g_timer_pid != 0) /* sometimes while debugging we won't fork the timer */
+    {
+      kill(g_timer_pid, SIGTERM);
+    }
     send_taxi_update(g_taxi_info_msq, ABORTED, status);
-    err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, -1, 0);
-    DEBUG_RAISE_INT(g_master_pid, err);
 
     exit(EXIT_TIMER);
     break;
@@ -266,9 +250,10 @@ void travel(direction_t *directions, int steps)
 
     sem_reserve(g_city_sems_cap, next_addr);
     sem_release(g_city_sems_cap, get_position());
+    
+    /* reset_taxi_timer(); */
 
     set_position(next_addr);
-    printf("wait for %f\n", (float)crossing_time/(float)1000000000);
     sleep_for(0, crossing_time);
 
     status.available = FALSE;
@@ -289,7 +274,6 @@ void travel(direction_t *directions, int steps)
 void reset_taxi_timer() {
   kill(g_timer_pid, SIGUSR1);
 }
-
 
 void print_path(direction_t *directions, int steps)
 {

@@ -1,6 +1,7 @@
 #include "data_structures.h"
 #include <math.h>
 
+#define HIT printf("hit\n");
 
 #define DEBUG \
   printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);

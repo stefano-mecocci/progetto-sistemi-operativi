@@ -17,6 +17,8 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/wait.h>
+
 
 #define ADJACENT_CELLS_NUM 8
 
@@ -209,7 +211,6 @@ void init_sync_sems(int sync_sems)
 
   err += semctl(sync_sems, SEM_SYNC_TAXI, SETVAL, SO_TAXI);
   err += semctl(sync_sems, SEM_SYNC_SOURCES, SETVAL, SO_SOURCES);
-  err += semctl(sync_sems, SEM_ALIVES_TAXI, SETVAL, 0);
 
   DEBUG_RAISE_INT(err);
 }
@@ -231,7 +232,10 @@ void init_city_sems_cap(int city_id, int city_sems_cap)
 
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
   {
-    semctl(city_sems_cap, i, SETVAL, city[i].capacity);
+    if (city[i].type == CELL_NORMAL)
+    {
+      semctl(city_sems_cap, i, SETVAL, city[i].capacity);
+    }
   }
 
   shmdt(city);
@@ -242,7 +246,7 @@ void place_city_holes(int city_id)
   City city = shmat(city_id, NULL, 0);
   int i = 0, pos = -1;
 
-  srand(time(NULL));
+	srand(time(NULL));
 
   while (i < SO_HOLES)
   {
@@ -434,26 +438,26 @@ void send_sources_origins()
 void clear_memory()
 {
   int err = 0, i;
-
+  
   err = shmctl(g_city_id, IPC_RMID, NULL);
-  DEBUG;
+  DEBUG_RAISE_INT(err);
   err = semctl(g_sync_sems, -1, IPC_RMID);
-  DEBUG;
+  DEBUG_RAISE_INT(err);
   err = semctl(g_city_sems_op, -1, IPC_RMID);
-  DEBUG;
+  DEBUG_RAISE_INT(err);
   err = semctl(g_city_sems_cap, -1, IPC_RMID);
-  DEBUG;
+  DEBUG_RAISE_INT(err);
   err = msgctl(g_taxi_info_msq, IPC_RMID, NULL);
-  DEBUG;
+  DEBUG_RAISE_INT(err);
   err = msgctl(g_requests_msq, IPC_RMID, NULL);
-  DEBUG;
+  DEBUG_RAISE_INT(err);
   err = msgctl(g_taxi_spawn_msq, IPC_RMID, NULL);
-  DEBUG;
-  for (i = 0; i < SO_SOURCES; i++)
+  DEBUG_RAISE_INT(err);
+  /* for (i = 0; i < SO_SOURCES; i++)
   {
     err = msgctl(g_origin_msq[i], IPC_RMID, NULL);
-    DEBUG;
-  }
+    DEBUG_RAISE_INT(err);
+  } */
 
   free(g_source_pids);
 }
@@ -461,10 +465,10 @@ void clear_memory()
 /* Signal handler del processo master */
 void master_handler(int signum)
 {
-  int i, err;
+  int i, err, status;
   char selection;
 
-  printf("signum=%d\n", signum);
+  struct sembuf bufor_sem;
 
   switch (signum)
   {
@@ -498,12 +502,13 @@ void master_handler(int signum)
       exit(EXIT_ERROR);
     }
     break;
-  case SIGTERM: /* Interrupts the simulation - brutally */
+  case SIGTERM: /* Interrupts the simulation - politely ask a program to terminate - can be blocked, handled, and ignored */
     send_signal_to_taxigen(SIGTERM);
     send_signal_to_changedetector(SIGTERM);
     send_signal_to_mastertimer(SIGTERM);
     send_signal_to_sources(SIGTERM);
 
+    DEBUG;
     clear_memory();
     exit(EXIT_ERROR);
     break;
@@ -514,14 +519,14 @@ void master_handler(int signum)
     send_signal_to_taxigen(SIGUSR2);
     send_signal_to_sources(SIGUSR2);
 
-    /* TOCHECK */
-    err = sem_op(g_sync_sems, SEM_ALIVES_TAXI, 0, 0);
+    err = waitpid(g_taxigen_pid, &status, 0);
     DEBUG_RAISE_INT(err);
 
-    /* MOVED to change_detector 
-    update_stats();
-    print_stats(); */
+    send_signal_to_changedetector(SIGTERM);
 
+    err = waitpid(g_changedetector_pid, &status, 0);
+    DEBUG_RAISE_INT(err);
+    
     clear_memory();
     exit(EXIT_TIMER);
     break;
@@ -566,70 +571,6 @@ void send_signal_to_sources(int signal)
   }
 }
 
-/* DEPRECATED Stampa statistiche di partita */
-/* void print_stats()
-{
-  printf("\n------------------------------------\n");
-  printf("Viaggi totali: %d\n", g_travels);
-  printf("Taxi che:\n");
-  printf("- ha fatto più strada: %d\n", g_most_street.crossed_cells);
-  printf("- ha fatto il viaggio più lungo: %d\n",
-         g_most_long_travel.max_travel_time);
-  printf("- ha raccolto più richieste: %d\n", g_most_requests.requests);
-  printf("------------------------------------\n\n");
-} */
-
-/* MOVED to taxi_change_detector - Aggiorna le statistiche della partita */
-/* void update_stats()
-{
-  TaxiInfo msg;
-  int err;
-
-  while (TRUE)
-  {
-    err = msgrcv(g_taxi_info_msq, &msg, sizeof msg.mtext, 0, IPC_NOWAIT);
-
-    if (errno != ENOMSG)
-    {
-      DEBUG_RAISE_INT(err);
-
-      g_travels += msg.mtext[2];
-      update_taxi_stats(msg.mtext);
-    }
-    else
-    {
-      break;
-    }
-  }
-} */
-
-/* REMOVED Aggiorna le statistiche di un taxi */
-/* void update_taxi_stats(int taxi_msg[])
-{
-  if (taxi_msg[0] > g_most_street.crossed_cells)
-  {
-    copy_taxi_data(taxi_msg, &g_most_street);
-  }
-
-  if (taxi_msg[1] > g_most_long_travel.max_travel_time)
-  {
-    copy_taxi_data(taxi_msg, &g_most_long_travel);
-  }
-
-  if (taxi_msg[2] > g_most_requests.requests)
-  {
-    copy_taxi_data(taxi_msg, &g_most_requests);
-  }
-} */
-
-/* REMOVED Copia i dati di un taxi dal messaggio alla struct */
-/* void copy_taxi_data(int taxi_msg[], TaxiStats *taxi)
-{
-  taxi->crossed_cells = taxi_msg[0];
-  taxi->max_travel_time = taxi_msg[1];
-  taxi->requests = taxi_msg[2];
-} */
-
 /* Invia l'origine alla sorgnete */
 void send_source_origin(int origin_msq, int origin)
 {
@@ -639,7 +580,6 @@ void send_source_origin(int origin_msq, int origin)
   msg.mtype = 1;
   msg.mtext[0] = origin;
   err = msgsnd(origin_msq, &msg, sizeof msg.mtext, 0);
-
   DEBUG_RAISE_INT(err);
 }
 

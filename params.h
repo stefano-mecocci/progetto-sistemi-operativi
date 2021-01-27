@@ -9,6 +9,9 @@
 /* Altezza griglia città */
 #define SO_HEIGHT 10
 
+/* sec */
+#define PRINT_INTERVAL 1
+
 /* Numero di buche nella città */
 #define SO_HOLES (atoi(getenv("SO_HOLES")))
 
