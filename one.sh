@@ -18,6 +18,6 @@ export SO_TIMENSEC_MAX=300000000
 
 export SO_TIMEOUT=1 # default = 1
 
-export SO_DURATION=20 # default = 20
+export SO_DURATION=10 # default = 20
 
 ./master.o

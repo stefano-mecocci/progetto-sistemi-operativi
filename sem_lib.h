@@ -30,7 +30,7 @@ union semun {
  * - the selected semaphore is initialized to the given value
  * - the returned value is the same as the invoked semctl
  */
-int sem_set_val(int sem_id, int sem_num, int sem_val);
+extern int sem_set_val(int sem_id, int sem_num, int sem_val);
 
 /*
  * Try to access the resource
@@ -44,7 +44,7 @@ int sem_set_val(int sem_id, int sem_num, int sem_val);
  *   process is blocked until the resource becomes available again
  * - the returned value is the same as the invoked semop
  */
-int sem_reserve(int sem_id, int sem_num);
+extern int sem_reserve(int sem_id, int sem_num);
 
 /*
  * Release the resource
@@ -56,4 +56,6 @@ int sem_reserve(int sem_id, int sem_num);
  *   process
  * - the returned value is the same as the invoked semop
  */
-int sem_release(int sem_id, int sem_num);
+extern int sem_release(int sem_id, int sem_num);
+
+extern int sem_getall(char * my_string, int sem_id);

@@ -37,6 +37,13 @@ int create_origin_msq()
   return id;
 }
 
+void init_data(int requests_msq, int city_id)
+{
+  g_origin = -1;
+  g_requests_msq = requests_msq;
+  g_city_id = city_id;
+}
+
 void set_handler()
 {
   struct sigaction act;
@@ -52,7 +59,7 @@ void set_handler()
 
 int generate_taxi_request(RequestMsg *req)
 {
-  req->mtype = 1;
+  req->mtype = (int)NORMAL;
   req->mtext.origin = g_origin;
   req->mtext.destination = generate_valid_pos();
   return 0;
@@ -90,7 +97,7 @@ void source_handler(int signum)
   {
   case SIGTERM:
     msgctl(g_origin_msq, IPC_RMID, NULL);
-    exit(EXIT_FAILURE);
+    exit(EXIT_SUCCESS);
     break;
 
   case SIGUSR1:
@@ -111,9 +118,8 @@ void source_handler(int signum)
 /* Genera una posizione valida per la destinazione */
 int generate_valid_pos()
 {
-  City city = shmat(g_city_id, NULL, 0);
+  City city = shmat(g_city_id, NULL, SHM_RDONLY);
   int pos = -1, done = FALSE;
-
   while (!done)
   {
     pos = rand_int(0, SO_HEIGHT * SO_WIDTH - 1);

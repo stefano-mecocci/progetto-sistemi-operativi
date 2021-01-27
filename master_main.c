@@ -62,7 +62,7 @@ int main() {
   start_change_detector();
 
   while (TRUE) {
-    sleep_for(1, 0);
+    sleep_for(PRINT_INTERVAL, 0);
     print_city(city_id);
   }
 

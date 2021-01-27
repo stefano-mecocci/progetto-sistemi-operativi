@@ -1,6 +1,7 @@
 #include "data_structures.h"
 #include <math.h>
 
+#define HIT printf("hit\n");
 
 #define DEBUG \
   printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
@@ -28,6 +29,13 @@
     DEBUG;                     \
     raise(SIGTERM);             \
   }
+
+#define CHECK_FILE(file, name) \
+    if (file == NULL)\
+    {\
+        printf("Error opening file %s!\n", name);\
+        exit(1);\
+    }\
 
 /* Returns map point from given index */
 extern Point index2point(int index);
