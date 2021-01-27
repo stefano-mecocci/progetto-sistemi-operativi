@@ -14,7 +14,7 @@ int main(int argc, char const *argv[]) {
   int origin_msq = create_origin_msq();
   RequestMsg req;
 
-	srand(time(NULL));
+	srand(time(NULL)^getpid());
 
   set_handler();
   init_data(requests_msq, city_id);
