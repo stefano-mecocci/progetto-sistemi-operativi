@@ -39,6 +39,8 @@ int *g_top_cells;                /* posizione celle più attraversate */
 TaxiStats g_taxi_most_street;    /* Taxi che ha percorso più celle */
 TaxiStats g_taxi_longest_travel; /* Taxi che ha fatto il viaggio più lungo */
 TaxiStats g_taxi_most_requests;  /* Taxi che ha raccolto più richieste */
+int g_unserved_requests = 0;
+int g_aborted_requests = 0;
 
 int g_taxi_info_msq_id;
 int g_requests_msq_id;
@@ -252,11 +254,23 @@ void write_update_to_file(TaxiActionMsg msg)
 
 void write_unserved_to_file(RequestMsg msg)
 {
-
+  char *status;
+  if (msg.mtype == NORMAL)
+  {
+    status = "UNSERVED";
+    g_unserved_requests++;
+  }
+  else
+  {
+    status = "ABORTED";
+    g_aborted_requests++;
+  }
   fseek(unserved_f, 0, SEEK_END);
-  fprintf(unserved_f, "origin=%d, destination=%d\n",
+  fprintf(unserved_f, "origin=%d, destination=%d - %s\n",
           msg.mtext.origin,
-          msg.mtext.destination);
+          msg.mtext.destination,
+          status
+          );
 }
 
 char *get_string_by_bool(enum Bool val)
