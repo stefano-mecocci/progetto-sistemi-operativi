@@ -508,7 +508,6 @@ void master_handler(int signum)
     send_signal_to_mastertimer(SIGTERM);
     send_signal_to_sources(SIGTERM);
 
-    DEBUG;
     clear_memory();
     exit(EXIT_ERROR);
     break;

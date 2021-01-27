@@ -27,7 +27,10 @@ int g_taxi_info_msq;
 int g_sync_sems;
 int g_city_id;
 int g_city_sems_cap;
+int g_requests_msq;
 
+enum Bool g_serving_req = FALSE;
+RequestMsg *g_last_request;
 pid_t g_master_pid, g_timer_pid;
 TaxiStats g_data;
 int g_pos;
@@ -59,13 +62,14 @@ void set_handler()
   sigaction(SIGUSR1, &act, NULL);
 }
 
-void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, int city_id, int city_sems_cap)
+void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, int city_id, int city_sems_cap, int requests_msq)
 {
   g_taxi_spawn_msq = taxi_spawn_msq;
   g_taxi_info_msq = taxi_info_msq;
   g_sync_sems = sync_sems;
   g_city_id = city_id;
   g_city_sems_cap = city_sems_cap;
+  g_requests_msq = requests_msq;
 }
 
 void init_data(int master_pid, int pos)
@@ -113,11 +117,12 @@ void start_timer()
   }
 }
 
-void receive_ride_request(int requests_msq, RequestMsg *req)
+void receive_ride_request(RequestMsg *req)
 {
   int err;
-  err = msgrcv(requests_msq, req, sizeof req->mtext, 0, 0);
+  err = msgrcv(g_requests_msq, req, sizeof req->mtext, FAILED, MSG_EXCEPT);
   DEBUG_RAISE_INT(g_master_pid, err);
+  g_last_request = req;
 }
 
 /*
@@ -154,17 +159,26 @@ void taxi_handler(int signum)
 
     send_taxi_update(g_taxi_info_msq, TIMEOUT, status);
     send_spawn_request();
+    if (g_serving_req == TRUE)
+    {
+      insert_aborted_request();
+    }
 
     unblock_signal(SIGUSR2);
     exit(EXIT_TIMER);
     break;
 
-  case SIGUSR2: /* END OF SIMULATION */
+  case SIGUSR2:           /* END OF SIMULATION */
     if (g_timer_pid != 0) /* sometimes while debugging we won't fork the timer */
     {
       kill(g_timer_pid, SIGTERM);
     }
     send_taxi_update(g_taxi_info_msq, ABORTED, status);
+
+    if (g_serving_req == TRUE)
+    {
+      insert_aborted_request();
+    }
 
     exit(EXIT_TIMER);
     break;
@@ -217,10 +231,11 @@ direction_t *get_path(int position, int destination, int *steps)
   return directions;
 }
 
-void copy_taxi_stats(TaxiStats * src, TaxiStats * dest) {
-    dest->crossed_cells = src->crossed_cells;
-    dest->max_travel_time = src->max_travel_time;
-    dest->requests = src->requests;
+void copy_taxi_stats(TaxiStats *src, TaxiStats *dest)
+{
+  dest->crossed_cells = src->crossed_cells;
+  dest->max_travel_time = src->max_travel_time;
+  dest->requests = src->requests;
 }
 
 void travel(direction_t *directions, int steps)
@@ -250,7 +265,7 @@ void travel(direction_t *directions, int steps)
 
     sem_reserve(g_city_sems_cap, next_addr);
     sem_release(g_city_sems_cap, get_position());
-    
+
     /* reset_taxi_timer(); */
 
     set_position(next_addr);
@@ -259,10 +274,10 @@ void travel(direction_t *directions, int steps)
     status.available = FALSE;
     status.pid = getpid();
     status.position = get_position();
-    
+
     g_data.crossed_cells += 1;
     g_data.max_travel_time = 10; /* TODO: calc the travel time */
-    g_data.requests += 0; /* TODO: add 1 if requets taken */
+    g_data.requests += 0;        /* TODO: add 1 if requets taken */
     copy_taxi_stats(&g_data, &status.taxi_stats);
 
     send_taxi_update(g_taxi_info_msq, BASICMOV, status);
@@ -271,7 +286,8 @@ void travel(direction_t *directions, int steps)
   astar_free_directions(directions);
 }
 
-void reset_taxi_timer() {
+void reset_taxi_timer()
+{
   kill(g_timer_pid, SIGUSR1);
 }
 
@@ -288,14 +304,31 @@ void print_path(direction_t *directions, int steps)
     p.x += astar_get_dx(g_as, *directions);
     p.y += astar_get_dy(g_as, *directions);
     next_addr = point2index(p);
-    printf("step %d: %d -> %d ; (%d, %d) -> (%d, %d)\n", 
-      i + 1, 
-      get_position(),
-      next_addr,
-      x, 
-      y,
-      p.x, 
-      p.y
-    );
+    printf("step %d: %d -> %d ; (%d, %d) -> (%d, %d)\n",
+           i + 1,
+           get_position(),
+           next_addr,
+           x,
+           y,
+           p.x,
+           p.y);
+  }
+}
+
+void set_aborted_request(enum Bool serving)
+{
+  g_serving_req = serving;
+}
+
+void insert_aborted_request()
+{
+  RequestMsg req;
+  if (g_last_request != NULL)
+  {
+    req.mtype = (int)FAILED;
+    req.mtext.origin = g_last_request->mtext.origin;
+    req.mtext.destination = g_last_request->mtext.destination;
+    int err = msgsnd(g_requests_msq, &req, sizeof(Ride), 0);
+    DEBUG_RAISE_INT(getppid(), err);
   }
 }

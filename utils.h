@@ -30,6 +30,13 @@
     raise(SIGTERM);             \
   }
 
+#define CHECK_FILE(file, name) \
+    if (file == NULL)\
+    {\
+        printf("Error opening file %s!\n", name);\
+        exit(1);\
+    }\
+
 /* Returns map point from given index */
 extern Point index2point(int index);
 

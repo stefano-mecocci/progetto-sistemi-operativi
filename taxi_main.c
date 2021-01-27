@@ -32,7 +32,7 @@ int main(int argc, char const *argv[]) {
   direction_t *path;
   int steps = 0, started = 0;
   
-  init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap);
+  init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap, requests_msq);
   init_data(atoi(argv[2]), atoi(argv[3]));
   set_handler();
 
@@ -45,7 +45,9 @@ int main(int argc, char const *argv[]) {
   /* start_timer(); */
 
   while(TRUE){
-    receive_ride_request(requests_msq, &req);
+    set_aborted_request(FALSE);
+    receive_ride_request(&req);
+    set_aborted_request(TRUE);
     /* Stop taxi timer */
     /* reset_taxi_timer(); */
     if(req.mtext.origin != get_position()){
