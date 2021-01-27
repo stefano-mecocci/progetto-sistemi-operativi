@@ -92,7 +92,7 @@ void set_position(int addr)
   g_pos = addr;
 }
 
-void start_timer()
+void create_timer()
 {
   pid_t pid = fork();
   char *args[2] = {"taxi_timer.o", NULL};
@@ -115,6 +115,15 @@ void start_timer()
   {
     g_timer_pid = pid;
   }
+}
+
+void start_timer(){
+  kill(g_timer_pid, SIGUSR1);
+}
+
+void reset_taxi_timer()
+{
+  kill(g_timer_pid, SIGUSR1);
 }
 
 void receive_ride_request(RequestMsg *req)
@@ -265,8 +274,8 @@ void travel(direction_t *directions, int steps)
 
     sem_reserve(g_city_sems_cap, next_addr);
     sem_release(g_city_sems_cap, get_position());
-
-    /* reset_taxi_timer(); */
+    
+   /*  reset_taxi_timer(); */
 
     set_position(next_addr);
     sleep_for(0, crossing_time);
@@ -284,11 +293,6 @@ void travel(direction_t *directions, int steps)
   }
 
   astar_free_directions(directions);
-}
-
-void reset_taxi_timer()
-{
-  kill(g_timer_pid, SIGUSR1);
 }
 
 void print_path(direction_t *directions, int steps)

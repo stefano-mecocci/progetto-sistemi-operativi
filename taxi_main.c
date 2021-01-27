@@ -42,14 +42,18 @@ int main(int argc, char const *argv[]) {
   }
 
   init_astar();
-  /* start_timer(); */
+  create_timer();
 
   while(TRUE){
     set_aborted_request(FALSE);
     receive_ride_request(&req);
     set_aborted_request(TRUE);
-    /* Stop taxi timer */
-    /* reset_taxi_timer(); */
+  
+    if (started == 0)
+    {
+      start_timer();
+      started++;
+    }
     if(req.mtext.origin != get_position()){
       /* gather path to source */
       path = get_path(get_position(), req.mtext.origin, &steps);
