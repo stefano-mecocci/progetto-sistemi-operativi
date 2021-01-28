@@ -3,9 +3,6 @@
 
 #include "data_structures.h"
 
-/* coda dove ricevere origine */
-int create_origin_msq();
-
 /* Imposta il signal handler di source */
 void set_handler();
 
@@ -17,6 +14,6 @@ int generate_taxi_request(RequestMsg * req);
 void send_taxi_request(RequestMsg * req);
 
 /* Salva l'origine della sorgente */
-void save_source_position(int origin_msq);
+void set_source_position(int position);
 
 #endif

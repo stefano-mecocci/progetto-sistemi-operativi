@@ -67,10 +67,4 @@ extern void create_sources();
 /* Stampa la città in ASCII */
 extern void print_city(int city_id);
 
-/* Imposta le celle sorgenti nella città */
-extern void set_sources(int city_id, int city_sems_op);
-
-/* Invia le posizioni di origine alle source */
-extern void send_sources_origins();
-
 #endif
