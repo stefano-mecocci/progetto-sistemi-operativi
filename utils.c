@@ -140,7 +140,8 @@ int get_cell_crossing_time(int city_id, int position)
 void block_signal(int signum)
 {
   sigset_t mask;
-  bzero(&mask, sizeof mask);
+  /* bzero(&mask, sizeof mask); */
+  sigemptyset(&mask);
   sigaddset(&mask, signum);
   sigprocmask(SIG_BLOCK, &mask, NULL);
 }
@@ -148,7 +149,8 @@ void block_signal(int signum)
 void unblock_signal(int signum)
 {
   sigset_t mask;
-  bzero(&mask, sizeof mask);
+  /* bzero(&mask, sizeof mask); */
+  sigemptyset(&mask);
   sigaddset(&mask, signum);
   sigprocmask(SIG_UNBLOCK, &mask, NULL);
 }

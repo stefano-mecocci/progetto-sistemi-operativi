@@ -499,7 +499,7 @@ void master_handler(int signum)
       send_signal_to_sources(SIGTERM);
 
       clear_memory();
-      exit(EXIT_ERROR);
+      exit(EXIT_FAILURE);
     }
     break;
   case SIGTERM: /* Interrupts the simulation - politely ask a program to terminate - can be blocked, handled, and ignored */
@@ -509,7 +509,7 @@ void master_handler(int signum)
     send_signal_to_sources(SIGTERM);
 
     clear_memory();
-    exit(EXIT_ERROR);
+    exit(EXIT_FAILURE);
     break;
   case SIGUSR1: /* Request new ride in every source */
     send_signal_to_sources(SIGUSR1);
@@ -527,7 +527,7 @@ void master_handler(int signum)
     DEBUG_RAISE_INT(err);
     
     clear_memory();
-    exit(EXIT_TIMER);
+    exit(EXIT_SUCCESS);
     break;
   default:
     break;
@@ -623,7 +623,7 @@ void create_source()
   {
     DEBUG;
     kill(getppid(), SIGTERM);
-    exit(EXIT_ERROR);
+    exit(EXIT_FAILURE);
   }
 }
 

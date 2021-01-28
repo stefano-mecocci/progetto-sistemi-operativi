@@ -27,7 +27,7 @@ int g_index;        /* indice di g_taxi_pids */
 void taxigen_handler(int signum);
 int find_pid_index(pid_t pid, pid_t arr[]);
 int generate_valid_taxi_pos(City city);
-void prepare_taxi_args(char *args[], int pos, int isNew);
+void prepare_taxi_args(char *args[], int pos, int is_respawned);
 
 /*
 ====================================
@@ -98,24 +98,24 @@ int set_taxi(int city_id, int city_sems_cap)
   return pos;
 }
 
-pid_t create_taxi(int pos, int isNew)
+pid_t create_taxi(int pos, int is_respawned)
 {
   char *args[5] = {"taxi.o", NULL, NULL, NULL, NULL};
   pid_t pid = fork();
   int err;
 
-  DEBUG_RAISE_INT(getppid(), pid);
+  DEBUG_RAISE_INT(getpid(), pid);
 
   if (pid == 0)
   {
-    prepare_taxi_args(args, pos, isNew);
+    prepare_taxi_args(args, pos, is_respawned);
     err = execve(args[0], args, environ);
 
     if (err == -1)
     {
       DEBUG;
       kill(getppid(), SIGTERM);
-      exit(EXIT_ERROR);
+      exit(EXIT_FAILURE);
     }
   }
   else
@@ -160,7 +160,7 @@ void taxigen_handler(int signum)
 
     break;
   case SIGUSR2:
-    send_signal_to_taxis(SIGUSR2);
+    send_signal_to_taxis(SIGTERM);
 
     while((child_pid = wait(&status)) != -1){
       /* printf("taxi %d exited with status %d\n", child_pid, WEXITSTATUS(status)); */
@@ -191,10 +191,10 @@ void send_signal_to_taxis(int signal)
 }
 
 /* Prepare gli args del processo taxi */
-void prepare_taxi_args(char *args[], int pos, int isNew)
+void prepare_taxi_args(char *args[], int pos, int is_respawned)
 {
   args[1] = malloc(sizeof(char) * 12);
-  sprintf(args[1], "%d", isNew);
+  sprintf(args[1], "%d", is_respawned);
 
   args[2] = malloc(sizeof(char) * 12);
   sprintf(args[2], "%d", getppid());

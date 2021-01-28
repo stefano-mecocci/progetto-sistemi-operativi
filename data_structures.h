@@ -131,8 +131,7 @@ typedef struct spawn
 #define SPAWN 2
 #define RESPAWN 3
 
-#define EXIT_TIMER EXIT_SUCCESS
-#define EXIT_ERROR EXIT_FAILURE
+#define EXIT_TIMER 2
 
 typedef struct origin
 {
