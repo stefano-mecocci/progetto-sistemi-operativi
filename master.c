@@ -50,6 +50,10 @@ int generate_origin_point(int, int);
 void send_source_origin(int origin_msq, int origin);
 void update_taxi_stats(int taxi_msg[]);
 void copy_taxi_data(int taxi_msg[], TaxiStats *taxi);
+void send_signal_to_taxigen(int signal);
+void send_signal_to_changedetector(int signal);
+void send_signal_to_mastertimer(int signal);
+void send_signal_to_sources(int signal);
 
 /*
 ====================================
@@ -460,6 +464,7 @@ void clear_memory()
   } */
 
   free(g_source_pids);
+  free(g_sources_positions);
 }
 
 /* Signal handler del processo master */

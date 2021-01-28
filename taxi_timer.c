@@ -17,7 +17,7 @@ void taxi_timer_handler(int signum);
 
 int main(int argc, char const *argv[]) {
   set_handler();
-  await_start();  
+  await_start(); 
 }
 
 void await_start()
@@ -45,7 +45,6 @@ void run_timer(){
       errno = 0;
     }
   }
-  return 0;
 }
 
 void set_handler()

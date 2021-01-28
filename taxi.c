@@ -31,7 +31,7 @@ int g_requests_msq;
 
 enum Bool g_serving_req = FALSE;
 RequestMsg *g_last_request;
-pid_t g_master_pid, g_timer_pid;
+pid_t g_master_pid, g_timer_pid = 0;
 TaxiStats g_data;
 int g_pos;
 astar_t *g_as;
@@ -40,6 +40,7 @@ void taxi_handler(int signum);
 void send_spawn_request();
 void reset_taxi_timer();
 void print_path(direction_t *directions, int steps);
+void insert_aborted_request();
 
 /*
 ====================================
@@ -118,7 +119,7 @@ void create_timer()
 }
 
 void start_timer(){
-  kill(g_timer_pid, SIGUSR1);
+    kill(g_timer_pid, SIGUSR1);
 }
 
 void reset_taxi_timer()
@@ -275,7 +276,7 @@ void travel(direction_t *directions, int steps)
     sem_reserve(g_city_sems_cap, next_addr);
     sem_release(g_city_sems_cap, get_position());
     
-   /*  reset_taxi_timer(); */
+    /* reset_taxi_timer(); */
 
     set_position(next_addr);
     sleep_for(0, crossing_time);
