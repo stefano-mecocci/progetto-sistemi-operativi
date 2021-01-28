@@ -40,6 +40,7 @@ astar_t *g_as;
 void taxi_handler(int, siginfo_t *, void *);
 void send_spawn_request();
 void print_path(direction_t *directions, int steps);
+void insert_aborted_request();
 
 /*
 ====================================

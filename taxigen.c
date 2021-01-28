@@ -28,6 +28,7 @@ void taxigen_handler(int signum);
 int find_pid_index(pid_t pid, pid_t arr[]);
 int generate_valid_taxi_pos(City city);
 void prepare_taxi_args(char *args[], int pos, int is_respawned);
+void send_signal_to_taxis(int signal);
 
 /*
 ====================================
