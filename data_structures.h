@@ -133,10 +133,4 @@ typedef struct spawn
 
 #define EXIT_TIMER 2
 
-typedef struct origin
-{
-  long mtype;
-  int mtext[1];
-} OriginMsg;
-
 #endif
