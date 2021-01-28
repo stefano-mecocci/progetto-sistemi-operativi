@@ -15,7 +15,11 @@ extern void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, 
 extern void init_data(int master_pid, int pos);
 
 /* Avvia il timer di SO_TIMEOUT */
+extern void create_timer();
+
 extern void start_timer();
+
+extern void reset_taxi_timer();
 
 /* Receives new ride request */
 extern void receive_ride_request(RequestMsg *req);
