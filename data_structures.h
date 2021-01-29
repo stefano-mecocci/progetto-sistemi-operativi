@@ -48,13 +48,21 @@ enum Bool
   TRUE
 };
 
-/* Struttura abbinata ad un processo taxi */
+/* ----- Structs per linked list di TaxiStats ----- */
 typedef struct taxi
 {
+  pid_t pid;
   int crossed_cells;
   int max_travel_time;
   int requests;
 } TaxiStats;
+
+typedef struct node {
+  TaxiStats taxi_stats;
+  struct node * next;
+} Node;
+
+typedef Node * List;
 
 /* Represents the current status of the taxi */
 typedef struct taxi_status

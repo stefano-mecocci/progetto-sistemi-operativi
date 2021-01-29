@@ -32,7 +32,6 @@ int g_requests_msq;
 enum Bool g_serving_req = FALSE;
 RequestMsg *g_last_request;
 pid_t g_master_pid, g_timer_pid = 0;
-TaxiStats g_data;
 int g_pos;
 astar_t *g_as;
 
@@ -77,10 +76,6 @@ void init_data(int master_pid, int pos)
 {
   g_master_pid = master_pid;
   g_pos = pos;
-
-  g_data.crossed_cells = 0;
-  g_data.max_travel_time = 0;
-  g_data.requests = 0;
 }
 
 int get_position()
@@ -117,7 +112,6 @@ void create_timer()
     g_timer_pid = pid;
   }
 }
-
 void start_timer(){
     kill(g_timer_pid, SIGUSR1);
 }
@@ -241,13 +235,6 @@ direction_t *get_path(int position, int destination, int *steps)
   return directions;
 }
 
-void copy_taxi_stats(TaxiStats *src, TaxiStats *dest)
-{
-  dest->crossed_cells = src->crossed_cells;
-  dest->max_travel_time = src->max_travel_time;
-  dest->requests = src->requests;
-}
-
 void travel(direction_t *directions, int steps)
 {
   int i, x, y, crossing_time, next_addr;
@@ -284,11 +271,6 @@ void travel(direction_t *directions, int steps)
     status.available = FALSE;
     status.pid = getpid();
     status.position = get_position();
-
-    g_data.crossed_cells += 1;
-    g_data.max_travel_time = 10; /* TODO: calc the travel time */
-    g_data.requests += 0;        /* TODO: add 1 if requets taken */
-    copy_taxi_stats(&g_data, &status.taxi_stats);
 
     send_taxi_update(g_taxi_info_msq, BASICMOV, status);
   }

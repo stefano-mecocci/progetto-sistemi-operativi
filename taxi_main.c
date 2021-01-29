@@ -51,7 +51,7 @@ int main(int argc, char const *argv[]) {
   
     if (started == 0)
     {
-      start_timer();
+      /* start_timer(); */
       started++;
     }
     if(req.mtext.origin != get_position()){
