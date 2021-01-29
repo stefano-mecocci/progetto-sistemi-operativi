@@ -80,8 +80,7 @@ void source_handler(int signum)
     break;
 
   case SIGUSR1:
-    generate_taxi_request(&req);
-    send_taxi_request(&req);
+    /* Only used to interrupt sleep in main */
     break;
 
   default:

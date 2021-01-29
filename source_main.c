@@ -14,6 +14,7 @@ int main(int argc, char const *argv[]) {
   int city_id = read_id_from_file("city_id");
   int origin = atoi(argv[1]);
   RequestMsg req;
+  printf("[source] pid=%d\n", getpid());
 
 	srand(time(NULL)^getpid());
 
@@ -24,9 +25,9 @@ int main(int argc, char const *argv[]) {
   set_source_position(origin);
 
   while (TRUE) {
+    sleep_for(RIDE_REQUEST_INTERVAL, 0);
     generate_taxi_request(&req);
     send_taxi_request(&req);
-    sleep_for(RIDE_REQUEST_INTERVAL, 0);
   }
 
   return 0;
