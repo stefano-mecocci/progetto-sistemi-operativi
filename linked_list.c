@@ -2,14 +2,17 @@
 #include "data_structures.h"
 #include <stdlib.h>
 #include "linked_list.h"
+#include "utils.h"
+#include <errno.h>
 
 List list_add(List p, pid_t pid) {
-  List new_list = malloc(sizeof(Node *));
+  List new_list;
+  new_list = malloc(sizeof(Node));
 
   /* Inizializzo l'elemento del nodo */
   new_list->taxi_stats.pid = pid;
   new_list->taxi_stats.crossed_cells = 0;
-  new_list->taxi_stats.max_travel_time = 0;
+  new_list->taxi_stats.longest_travel_time = 0;
   new_list->taxi_stats.requests = 0;
 
   /* Imposto il puntatore dopo */

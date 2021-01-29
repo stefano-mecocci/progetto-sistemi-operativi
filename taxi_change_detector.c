@@ -100,9 +100,7 @@ void create_taxi_availability_list()
     g_taxi_status_list[i].pid = -1;
     g_taxi_status_list[i].available = FALSE;
     g_taxi_status_list[i].position = -1;
-    g_taxi_status_list[i].taxi_stats.crossed_cells = 0;
-    g_taxi_status_list[i].taxi_stats.max_travel_time = 0;
-    g_taxi_status_list[i].taxi_stats.requests = 0;
+    g_taxi_status_list[i].longest_travel_time = -1;
   }
 }
 
@@ -205,6 +203,11 @@ void update_taxi_availability_list(TaxiActionMsg update)
   }
   else if (update.mtype == SERVED)
   {
+    if (update.mtext.longest_travel_time > g_longest_travel_time.longest_travel_time) {
+      g_longest_travel_time.longest_travel_time = update.mtext.longest_travel_time;
+      g_longest_travel_time.pid = update.mtext.pid;
+    }
+
     g_successed_requests += 1;
     g_taxi_status_list[index].available = TRUE;
   }
@@ -330,7 +333,7 @@ void calc_top_cells() {
 void copy_taxi_stats(TaxiStats *src, TaxiStats *dest)
 {
   dest->crossed_cells = src->crossed_cells;
-  dest->max_travel_time = src->max_travel_time;
+  dest->longest_travel_time = src->longest_travel_time;
   dest->requests = src->requests;
   dest->pid = src->pid;
 }
@@ -348,7 +351,7 @@ void calc_taxi_stats()
       copy_taxi_stats(&(p->taxi_stats), &g_most_requests);
     }
 
-    if (p->taxi_stats.max_travel_time > g_longest_travel_time.max_travel_time) {
+    if (p->taxi_stats.longest_travel_time > g_longest_travel_time.longest_travel_time) {
       copy_taxi_stats(&(p->taxi_stats), &g_longest_travel_time);
     }
 
@@ -361,11 +364,20 @@ void calc_stats() {
   calc_taxi_stats();
 }
 
-void fprint_taxi(FILE *report_file, TaxiStats taxi) {
+void fprint_taxi_time(FILE *report_file, TaxiStats taxi) {
   fprintf(report_file, "- Pid = %d\n", taxi.pid);
-  fprintf(report_file, "- Crossed cells = %d\n", taxi.crossed_cells);
-  fprintf(report_file, "- Longest travel = %d\n", taxi.max_travel_time);
+  fprintf(report_file, "- Longest travel = %ldms\n\n", taxi.longest_travel_time);
+
+}
+
+void fprint_taxi_requests(FILE *report_file, TaxiStats taxi) {
+  fprintf(report_file, "- Pid = %d\n", taxi.pid);
   fprintf(report_file, "- Requests = %d\n\n", taxi.requests);
+}
+
+void fprint_taxi_cells(FILE *report_file, TaxiStats taxi) {
+  fprintf(report_file, "- Pid = %d\n", taxi.pid);
+  fprintf(report_file, "- Crossed cells = %d\n\n", taxi.crossed_cells);
 }
 
 void write_stats_to_report_file() {
@@ -385,11 +397,11 @@ void write_stats_to_report_file() {
   fprintf(report_file, "\n\n");
 
   fprintf(report_file, "Taxi who did most street:\n");
-  fprint_taxi(report_file, g_most_street);
+  fprint_taxi_cells(report_file, g_most_street);
   fprintf(report_file, "Taxi who did the longest travel:\n");
-  fprint_taxi(report_file, g_longest_travel_time);
+  fprint_taxi_time(report_file, g_longest_travel_time);
   fprintf(report_file, "Taxi who take most requests:\n");
-  fprint_taxi(report_file, g_most_requests);
+  fprint_taxi_requests(report_file, g_most_requests);
 }
 
 /* Signal handler del processo taxi_change_detector */

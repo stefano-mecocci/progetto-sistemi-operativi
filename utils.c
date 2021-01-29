@@ -16,6 +16,8 @@
 #include <time.h>
 #include <string.h>
 
+long g_start;
+
 /* Conversione indice -> punto */
 Point index2point(int index)
 {
@@ -151,4 +153,22 @@ void unblock_signal(int signum)
   bzero(&mask, sizeof mask);
   sigaddset(&mask, signum);
   sigprocmask(SIG_UNBLOCK, &mask, NULL);
+}
+
+long get_milliseconds() {
+  struct timeval tv;
+
+  gettimeofday(&tv, NULL);
+
+  long millisecondsSinceEpoch =
+      (long)(tv.tv_sec) * 1000 +
+      (long)(tv.tv_usec) / 1000;
+}
+
+void reset_stopwatch() {
+  g_start = get_milliseconds();
+}
+
+long record_stopwatch() {
+  return get_milliseconds() - g_start;
 }

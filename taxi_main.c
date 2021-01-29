@@ -30,6 +30,7 @@ int main(int argc, char const *argv[]) {
   RequestMsg req;
   TaxiStatus status;
   direction_t *path;
+  long last_travel_duration;
   int steps = 0, started = 0;
   
   init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap, requests_msq);
@@ -41,6 +42,7 @@ int main(int argc, char const *argv[]) {
     DEBUG_RAISE_INT(err);
   }
 
+  status.longest_travel_time = 0;
   init_astar();
   create_timer();
 
@@ -48,6 +50,8 @@ int main(int argc, char const *argv[]) {
     set_aborted_request(FALSE);
     receive_ride_request(&req);
     set_aborted_request(TRUE);
+
+    reset_stopwatch();
   
     if (started == 0)
     {
@@ -73,9 +77,15 @@ int main(int argc, char const *argv[]) {
     path = get_path(get_position(), req.mtext.destination, &steps);
     travel(path, steps);
     printf("END RIDE\n");
+    last_travel_duration = record_stopwatch();
     status.available = TRUE;
     status.pid = getpid();
     status.position = get_position();
+
+    if (last_travel_duration > status.longest_travel_time) {
+      status.longest_travel_time = last_travel_duration;
+    }
+
     send_taxi_update(taxi_info_msq, SERVED, status);
   }
 

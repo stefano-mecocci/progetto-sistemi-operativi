@@ -53,7 +53,7 @@ typedef struct taxi
 {
   pid_t pid;
   int crossed_cells;
-  int max_travel_time;
+  long longest_travel_time;
   int requests;
 } TaxiStats;
 
@@ -70,7 +70,7 @@ typedef struct taxi_status
   pid_t pid;
   enum Bool available;
   int position;
-  TaxiStats taxi_stats;
+  long longest_travel_time;
 } TaxiStatus;
 
 enum TaxiOps

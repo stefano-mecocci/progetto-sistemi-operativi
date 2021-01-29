@@ -22,6 +22,8 @@
 
 #define TAXIPIDS_SIZE (SO_TAXI + 1)
 
+clockid_t g_stopwatch;
+
 int g_taxi_spawn_msq;
 int g_taxi_info_msq;
 int g_sync_sems;

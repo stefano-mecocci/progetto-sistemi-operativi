@@ -36,4 +36,6 @@ extern direction_t *get_path(int position, int destination, int *steps);
 
 extern void travel(direction_t *directions, int steps);
 
+extern void record();
+
 #endif
