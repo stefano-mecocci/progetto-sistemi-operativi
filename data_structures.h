@@ -26,9 +26,7 @@ typedef struct cell
 {
   enum cell_type type;
   int capacity;
-  int act_capacity;
   int cross_time;
-  int crossing_num;
 } Cell;
 
 /* Città = array di lunghezza SO_WIDTH * SO_HEIGHT */
@@ -48,13 +46,21 @@ enum Bool
   TRUE
 };
 
-/* Struttura abbinata ad un processo taxi */
+/* ----- Structs per linked list di TaxiStats ----- */
 typedef struct taxi
 {
+  pid_t pid;
   int crossed_cells;
-  int max_travel_time;
+  long longest_travel_time;
   int requests;
 } TaxiStats;
+
+typedef struct node {
+  TaxiStats taxi_stats;
+  struct node * next;
+} Node;
+
+typedef Node * List;
 
 /* Represents the current status of the taxi */
 typedef struct taxi_status
@@ -62,7 +68,7 @@ typedef struct taxi_status
   pid_t pid;
   enum Bool available;
   int position;
-  TaxiStats taxi_stats;
+  long longest_travel_time;
 } TaxiStatus;
 
 enum TaxiOps
@@ -131,13 +137,6 @@ typedef struct spawn
 #define SPAWN 2
 #define RESPAWN 3
 
-#define EXIT_TIMER EXIT_SUCCESS
-#define EXIT_ERROR EXIT_FAILURE
-
-typedef struct origin
-{
-  long mtype;
-  int mtext[1];
-} OriginMsg;
+#define EXIT_TIMER 2
 
 #endif

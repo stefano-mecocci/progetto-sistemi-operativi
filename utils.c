@@ -16,6 +16,8 @@
 #include <time.h>
 #include <string.h>
 
+long g_start;
+
 /* Conversione indice -> punto */
 Point index2point(int index)
 {
@@ -121,26 +123,11 @@ int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status)
   return msgsnd(queue_id, &msg, sizeof(TaxiStatus), 0);
 }
 
-enum cell_type get_cell_type(int city_id, int position)
-{
-  City city = shmat(city_id, NULL, SHM_RDONLY);
-  enum cell_type type = city[position].type;
-  shmdt(city);
-  return type;
-}
-
-int get_cell_crossing_time(int city_id, int position)
-{
-  City city = shmat(city_id, NULL, SHM_RDONLY);
-  int time = city[position].cross_time;
-  shmdt(city);
-  return time;
-}
-
 void block_signal(int signum)
 {
   sigset_t mask;
-  bzero(&mask, sizeof mask);
+  /* bzero(&mask, sizeof mask); */
+  sigemptyset(&mask);
   sigaddset(&mask, signum);
   sigprocmask(SIG_BLOCK, &mask, NULL);
 }
@@ -148,7 +135,26 @@ void block_signal(int signum)
 void unblock_signal(int signum)
 {
   sigset_t mask;
-  bzero(&mask, sizeof mask);
+  /* bzero(&mask, sizeof mask); */
+  sigemptyset(&mask);
   sigaddset(&mask, signum);
   sigprocmask(SIG_UNBLOCK, &mask, NULL);
+}
+
+long get_milliseconds() {
+  struct timeval tv;
+
+  gettimeofday(&tv, NULL);
+
+  long millisecondsSinceEpoch =
+      (long)(tv.tv_sec) * 1000 +
+      (long)(tv.tv_usec) / 1000;
+}
+
+void reset_stopwatch() {
+  g_start = get_milliseconds();
+}
+
+long record_stopwatch() {
+  return get_milliseconds() - g_start;
 }

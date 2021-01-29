@@ -17,10 +17,13 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
 #define TAXIPIDS_SIZE (SO_TAXI + 1)
+
+clockid_t g_stopwatch;
 
 int g_taxi_spawn_msq;
 int g_taxi_info_msq;
@@ -28,17 +31,16 @@ int g_sync_sems;
 int g_city_id;
 int g_city_sems_cap;
 int g_requests_msq;
+City g_city;
 
 enum Bool g_serving_req = FALSE;
 RequestMsg *g_last_request;
-pid_t g_master_pid, g_timer_pid = 0;
-TaxiStats g_data;
+pid_t g_master_pid;
 int g_pos;
 astar_t *g_as;
 
-void taxi_handler(int signum);
+void taxi_handler(int, siginfo_t *, void *);
 void send_spawn_request();
-void reset_taxi_timer();
 void print_path(direction_t *directions, int steps);
 void insert_aborted_request();
 
@@ -47,21 +49,6 @@ void insert_aborted_request();
   PUBLIC
 ====================================
 */
-
-void set_handler()
-{
-  struct sigaction act;
-  bzero(&act, sizeof act);
-
-  act.sa_handler = taxi_handler;
-  act.sa_flags = SA_NODEFER;
-
-  sigaction(SIGINT, &act, NULL);
-  sigaction(SIGCONT, &act, NULL);
-  sigaction(SIGTERM, &act, NULL);
-  sigaction(SIGUSR2, &act, NULL);
-  sigaction(SIGUSR1, &act, NULL);
-}
 
 void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, int city_id, int city_sems_cap, int requests_msq)
 {
@@ -77,10 +64,19 @@ void init_data(int master_pid, int pos)
 {
   g_master_pid = master_pid;
   g_pos = pos;
+}
 
-  g_data.crossed_cells = 0;
-  g_data.max_travel_time = 0;
-  g_data.requests = 0;
+void copy_city(){
+  int i;
+  g_city = malloc(sizeof(Cell)*(SO_WIDTH * SO_HEIGHT));
+  City city = shmat(g_city_id, NULL, SHM_RDONLY);
+  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
+  {
+    g_city[i].type = city[i].type;
+    g_city[i].cross_time = city[i].cross_time;
+    g_city[i].capacity = city[i].capacity;
+  }
+  shmdt(city);
 }
 
 int get_position()
@@ -93,38 +89,9 @@ void set_position(int addr)
   g_pos = addr;
 }
 
-void create_timer()
+void start_timer()
 {
-  pid_t pid = fork();
-  char *args[2] = {"taxi_timer.o", NULL};
-  int err;
-
-  DEBUG_RAISE_INT(pid);
-
-  if (pid == 0)
-  {
-    err = execve(args[0], args, environ);
-
-    if (err == -1)
-    {
-      DEBUG;
-      kill(getppid(), SIGTERM);
-      exit(EXIT_ERROR);
-    }
-  }
-  else
-  {
-    g_timer_pid = pid;
-  }
-}
-
-void start_timer(){
-    kill(g_timer_pid, SIGUSR1);
-}
-
-void reset_taxi_timer()
-{
-  kill(g_timer_pid, SIGUSR1);
+  alarm(SO_TIMEOUT);
 }
 
 void receive_ride_request(RequestMsg *req)
@@ -135,62 +102,54 @@ void receive_ride_request(RequestMsg *req)
   g_last_request = req;
 }
 
+void set_handler()
+{
+  struct sigaction act;
+  bzero(&act, sizeof act);
+
+  act.sa_sigaction = taxi_handler;
+  act.sa_flags = SA_NODEFER | SA_SIGINFO;
+
+  sigaction(SIGALRM, &act, NULL);
+  sigaction(SIGTERM, &act, NULL);
+}
+
 /*
 ====================================
   PRIVATE
 ====================================
 */
 
-void taxi_handler(int signum)
+void taxi_handler(int signum, siginfo_t *info, void *context)
 {
-  int i, err;
+  int i, err, timer_status;
   TaxiStatus status;
   status.pid = getpid();
   status.position = g_pos;
 
   switch (signum)
   {
-  case SIGINT:
-    kill(g_timer_pid, SIGSTOP);
-    raise(SIGSTOP);
-    break;
-
-  case SIGCONT:
-    kill(g_timer_pid, SIGCONT);
-    break;
-
-  case SIGTERM:
-    kill(g_timer_pid, SIGTERM);
-    exit(EXIT_ERROR);
-    break;
-
-  case SIGUSR1: /* TIMEOUT */
-    block_signal(SIGUSR2);
-
-    send_taxi_update(g_taxi_info_msq, TIMEOUT, status);
-    send_spawn_request();
+  case SIGALRM:
+    err = send_taxi_update(g_taxi_info_msq, TIMEOUT, status);
+    DEBUG_RAISE_INT(err);
+    send_spawn_request(); 
     if (g_serving_req == TRUE)
     {
       insert_aborted_request();
     }
-
-    unblock_signal(SIGUSR2);
     exit(EXIT_TIMER);
+
     break;
 
-  case SIGUSR2:           /* END OF SIMULATION */
-    if (g_timer_pid != 0) /* sometimes while debugging we won't fork the timer */
-    {
-      kill(g_timer_pid, SIGTERM);
-    }
+  case SIGTERM:
+    printf("[taxi](%d) ABORTING\n", getpid());
     send_taxi_update(g_taxi_info_msq, ABORTED, status);
 
     if (g_serving_req == TRUE)
     {
       insert_aborted_request();
     }
-
-    exit(EXIT_TIMER);
+    exit(EXIT_SUCCESS);
     break;
   }
 }
@@ -212,7 +171,7 @@ void send_spawn_request()
 uint8_t get_map_cost(const uint32_t x, const uint32_t y)
 {
   int index = coordinates2index(x, y);
-  enum cell_type type = get_cell_type(g_city_id, index);
+  enum cell_type type = g_city[index].type;
   uint8_t cost = type == CELL_HOLE ? COST_BLOCKED : 1;
   return cost;
 }
@@ -241,13 +200,6 @@ direction_t *get_path(int position, int destination, int *steps)
   return directions;
 }
 
-void copy_taxi_stats(TaxiStats *src, TaxiStats *dest)
-{
-  dest->crossed_cells = src->crossed_cells;
-  dest->max_travel_time = src->max_travel_time;
-  dest->requests = src->requests;
-}
-
 void travel(direction_t *directions, int steps)
 {
   int i, x, y, crossing_time, next_addr;
@@ -271,12 +223,12 @@ void travel(direction_t *directions, int steps)
       p.x, 
       p.y
     ); */
-    crossing_time = get_cell_crossing_time(g_city_id, next_addr);
+    crossing_time = g_city[next_addr].cross_time;
 
     sem_reserve(g_city_sems_cap, next_addr);
     sem_release(g_city_sems_cap, get_position());
-    
-    /* reset_taxi_timer(); */
+
+    start_timer();
 
     set_position(next_addr);
     sleep_for(0, crossing_time);
@@ -284,11 +236,6 @@ void travel(direction_t *directions, int steps)
     status.available = FALSE;
     status.pid = getpid();
     status.position = get_position();
-
-    g_data.crossed_cells += 1;
-    g_data.max_travel_time = 10; /* TODO: calc the travel time */
-    g_data.requests += 0;        /* TODO: add 1 if requets taken */
-    copy_taxi_stats(&g_data, &status.taxi_stats);
 
     send_taxi_update(g_taxi_info_msq, BASICMOV, status);
   }

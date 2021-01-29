@@ -40,6 +40,8 @@
 /* Returns map point from given index */
 extern Point index2point(int index);
 
+extern int coordinates2index(int x, int y);
+
 /* Returns map index from given point */
 extern int point2index(Point p);
 
@@ -65,10 +67,12 @@ extern int rand_int(int min, int max);
 /* Enqueues taxi status update */
 extern int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status);
 
-extern enum cell_type get_cell_type(int city_id, int position);
-
-extern int get_cell_crossing_time(int city_id, int position);
-
 extern void block_signal(int signum);
 
 extern void unblock_signal(int signum);
+
+extern long get_milliseconds();
+
+extern void reset_stopwatch();
+
+extern long record_stopwatch();
