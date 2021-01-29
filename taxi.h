@@ -14,6 +14,8 @@ extern void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, 
 /* Inizializza altri dati globali */
 extern void init_data(int master_pid, int pos);
 
+extern void copy_city();
+
 /* Avvia il timer di SO_TIMEOUT */
 extern void create_timer();
 

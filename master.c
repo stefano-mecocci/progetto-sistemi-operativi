@@ -199,9 +199,7 @@ void init_city_cells(int city_id)
   {
     city[i].type = CELL_NORMAL;
     city[i].capacity = rand_int(SO_CAP_MIN, SO_CAP_MAX);
-    city[i].act_capacity = city[i].capacity;
     city[i].cross_time = rand_int(SO_TIMENSEC_MIN, SO_TIMENSEC_MAX);
-    city[i].crossing_num = 0;
   }
 
   shmdt(city);
@@ -647,8 +645,6 @@ void place_hole(int pos, City city)
   city[pos].capacity = -1;
   city[pos].cross_time = -1;
   city[pos].type = CELL_HOLE;
-  city[pos].crossing_num = -1;
-  city[pos].act_capacity = -1;
 }
 
 /* Inizializza una struct taxi */

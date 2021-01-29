@@ -36,6 +36,7 @@ int main(int argc, char const *argv[]) {
   init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap, requests_msq);
   init_data(atoi(argv[2]), atoi(argv[3]));
   set_handler();
+  copy_city();
 
   if (is_respawned == FALSE) {
     err = sem_op(sync_sems, SEM_SYNC_TAXI, -1, 0);

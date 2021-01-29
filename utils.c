@@ -121,22 +121,6 @@ int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status)
   return msgsnd(queue_id, &msg, sizeof(TaxiStatus), 0);
 }
 
-enum cell_type get_cell_type(int city_id, int position)
-{
-  City city = shmat(city_id, NULL, SHM_RDONLY);
-  enum cell_type type = city[position].type;
-  shmdt(city);
-  return type;
-}
-
-int get_cell_crossing_time(int city_id, int position)
-{
-  City city = shmat(city_id, NULL, SHM_RDONLY);
-  int time = city[position].cross_time;
-  shmdt(city);
-  return time;
-}
-
 void block_signal(int signum)
 {
   sigset_t mask;

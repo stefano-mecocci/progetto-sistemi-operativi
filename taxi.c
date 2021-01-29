@@ -29,6 +29,7 @@ int g_sync_sems;
 int g_city_id;
 int g_city_sems_cap;
 int g_requests_msq;
+City g_city;
 
 enum Bool g_serving_req = FALSE;
 RequestMsg *g_last_request;
@@ -66,6 +67,19 @@ void init_data(int master_pid, int pos)
   g_data.crossed_cells = 0;
   g_data.max_travel_time = 0;
   g_data.requests = 0;
+}
+
+void copy_city(){
+  int i;
+  g_city = malloc(sizeof(Cell)*(SO_WIDTH * SO_HEIGHT));
+  City city = shmat(g_city_id, NULL, SHM_RDONLY);
+  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
+  {
+    g_city[i].type = city[i].type;
+    g_city[i].cross_time = city[i].cross_time;
+    g_city[i].capacity = city[i].capacity;
+  }
+  shmdt(city);
 }
 
 int get_position()
@@ -119,7 +133,6 @@ void taxi_handler(int signum, siginfo_t *info, void *context)
   switch (signum)
   {
   case SIGALRM:
-    printf("time out!\n");
     err = send_taxi_update(g_taxi_info_msq, TIMEOUT, status);
     DEBUG_RAISE_INT(err);
     send_spawn_request(); 
@@ -161,7 +174,7 @@ void send_spawn_request()
 uint8_t get_map_cost(const uint32_t x, const uint32_t y)
 {
   int index = coordinates2index(x, y);
-  enum cell_type type = get_cell_type(g_city_id, index);
+  enum cell_type type = g_city[index].type;
   uint8_t cost = type == CELL_HOLE ? COST_BLOCKED : 1;
   return cost;
 }
@@ -220,7 +233,7 @@ void travel(direction_t *directions, int steps)
       p.x, 
       p.y
     ); */
-    crossing_time = get_cell_crossing_time(g_city_id, next_addr);
+    crossing_time = g_city[next_addr].cross_time;
 
     sem_reserve(g_city_sems_cap, next_addr);
     sem_release(g_city_sems_cap, get_position());

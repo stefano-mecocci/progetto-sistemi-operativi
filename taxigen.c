@@ -26,7 +26,6 @@ int g_index;        /* indice di g_taxi_pids */
 
 void taxigen_handler(int signum);
 int find_pid_index(pid_t pid, pid_t arr[]);
-int generate_valid_taxi_pos(City city);
 void prepare_taxi_args(char *args[], int pos, int is_respawned);
 void send_signal_to_taxis(int signal);
 
@@ -202,24 +201,6 @@ void prepare_taxi_args(char *args[], int pos, int is_respawned)
 
   args[3] = malloc(sizeof(char) * 12);
   sprintf(args[3], "%d", pos);
-}
-
-/* Genera una posizione valida per un taxi */
-int generate_valid_taxi_pos(City city)
-{
-  int pos = -1, done = FALSE;
-
-  while (!done)
-  {
-    pos = rand_int(0, SO_HEIGHT * SO_WIDTH - 1);
-
-    if (city[pos].type != CELL_HOLE && city[pos].act_capacity > 0)
-    {
-      done = TRUE;
-    }
-  }
-
-  return pos;
 }
 
 /* Trova l'indice di un pid salvato in array */

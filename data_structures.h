@@ -26,9 +26,7 @@ typedef struct cell
 {
   enum cell_type type;
   int capacity;
-  int act_capacity;
   int cross_time;
-  int crossing_num;
 } Cell;
 
 /* Città = array di lunghezza SO_WIDTH * SO_HEIGHT */
