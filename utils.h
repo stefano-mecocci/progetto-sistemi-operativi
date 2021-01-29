@@ -70,3 +70,9 @@ extern int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status);
 extern void block_signal(int signum);
 
 extern void unblock_signal(int signum);
+
+extern long get_milliseconds();
+
+extern void reset_stopwatch();
+
+extern long record_stopwatch();

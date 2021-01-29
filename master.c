@@ -38,7 +38,6 @@ pid_t g_mastertimer_pid;
 pid_t g_changedetector_pid;
 int *g_sources_positions;
 
-void init_taxi(TaxiStats *taxi);
 void master_handler(int signum);
 void clear_memory();
 void generate_adjacent_list(Point p, int list[]);
@@ -47,7 +46,6 @@ void place_hole(int pos, City city);
 void create_source(int position);
 int generate_origin_point(int, int);
 void update_taxi_stats(int taxi_msg[]);
-void copy_taxi_data(int taxi_msg[], TaxiStats *taxi);
 void send_signal_to_taxigen(int signal);
 void send_signal_to_changedetector(int signal);
 void send_signal_to_mastertimer(int signal);
@@ -645,12 +643,4 @@ void place_hole(int pos, City city)
   city[pos].capacity = -1;
   city[pos].cross_time = -1;
   city[pos].type = CELL_HOLE;
-}
-
-/* Inizializza una struct taxi */
-void init_taxi(TaxiStats *taxi)
-{
-  taxi->crossed_cells = -1;
-  taxi->max_travel_time = -1;
-  taxi->requests = -1;
 }
