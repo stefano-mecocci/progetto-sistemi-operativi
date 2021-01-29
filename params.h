@@ -12,6 +12,9 @@
 /* sec */
 #define PRINT_INTERVAL 1
 
+/* sec */
+#define RIDE_REQUEST_INTERVAL 3
+
 /* Numero di buche nella città */
 #define SO_HOLES (atoi(getenv("SO_HOLES")))
 
