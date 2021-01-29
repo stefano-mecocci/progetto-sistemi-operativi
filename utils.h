@@ -72,3 +72,9 @@ extern int get_cell_crossing_time(int city_id, int position);
 extern void block_signal(int signum);
 
 extern void unblock_signal(int signum);
+
+extern long get_milliseconds();
+
+extern void reset_stopwatch();
+
+extern long record_stopwatch();
