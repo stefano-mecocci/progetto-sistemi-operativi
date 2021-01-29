@@ -27,6 +27,7 @@ int main(int argc, char const *argv[]) {
   int city_sems_op = read_id_from_file("city_sems_op");
   int city_sems_cap = read_id_from_file("city_sems_cap");
   int city_id = read_id_from_file("city_id");
+  int is_respawned = atoi(argv[1]);
   RequestMsg req;
   TaxiStatus status;
   direction_t *path;
@@ -36,16 +37,17 @@ int main(int argc, char const *argv[]) {
   init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap, requests_msq);
   init_data(atoi(argv[2]), atoi(argv[3]));
   set_handler();
+  copy_city();
 
-  if (atoi(argv[1]) == FALSE) {
+  if (is_respawned == FALSE) {
     err = sem_op(sync_sems, SEM_SYNC_TAXI, -1, 0);
     DEBUG_RAISE_INT(err);
   }
 
   status.longest_travel_time = 0;
   init_astar();
-  create_timer();
-
+  start_timer();
+  
   while(TRUE){
     set_aborted_request(FALSE);
     receive_ride_request(&req);
@@ -65,7 +67,7 @@ int main(int argc, char const *argv[]) {
       if(get_position() != req.mtext.origin){
         errno = 0;
         printf("Taxi %d did not reach the correct source for pickup.\n", getpid());
-        raise(SIGUSR1);
+        raise(SIGALRM);
       }
     }
     printf("START RIDE\n");

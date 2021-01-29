@@ -197,9 +197,7 @@ void init_city_cells(int city_id)
   {
     city[i].type = CELL_NORMAL;
     city[i].capacity = rand_int(SO_CAP_MIN, SO_CAP_MAX);
-    city[i].act_capacity = city[i].capacity;
     city[i].cross_time = rand_int(SO_TIMENSEC_MIN, SO_TIMENSEC_MAX);
-    city[i].crossing_num = 0;
   }
 
   shmdt(city);
@@ -475,7 +473,7 @@ void master_handler(int signum)
       send_signal_to_sources(SIGTERM);
 
       clear_memory();
-      exit(EXIT_ERROR);
+      exit(EXIT_FAILURE);
     }
     break;
   case SIGTERM: /* Interrupts the simulation - politely ask a program to terminate - can be blocked, handled, and ignored */
@@ -485,7 +483,7 @@ void master_handler(int signum)
     send_signal_to_sources(SIGTERM);
 
     clear_memory();
-    exit(EXIT_ERROR);
+    exit(EXIT_FAILURE);
     break;
   case SIGUSR1: /* Request new ride in every source */
     send_signal_to_sources(SIGUSR1);
@@ -503,7 +501,7 @@ void master_handler(int signum)
     DEBUG_RAISE_INT(err);
     
     clear_memory();
-    exit(EXIT_TIMER);
+    exit(EXIT_SUCCESS);
     break;
   default:
     break;
@@ -589,7 +587,7 @@ void create_source(int position)
   {
     DEBUG;
     kill(getppid(), SIGTERM);
-    exit(EXIT_ERROR);
+    exit(EXIT_FAILURE);
   }
 }
 
@@ -645,6 +643,4 @@ void place_hole(int pos, City city)
   city[pos].capacity = -1;
   city[pos].cross_time = -1;
   city[pos].type = CELL_HOLE;
-  city[pos].crossing_num = -1;
-  city[pos].act_capacity = -1;
 }

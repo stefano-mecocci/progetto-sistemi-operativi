@@ -5,7 +5,6 @@ compile: clean utils.o
 	@$(CC) $(CFLAGS) -o master.o master.c master_main.c utils.o -lm
 	@$(CC) $(CFLAGS) -o taxigen.o taxigen.c taxigen_main.c utils.o -lm
 	@$(CC) $(CFLAGS) -o taxi.o taxi.c taxi_main.c utils.o astar/astar.c astar/astar_heap.c sem_lib.c -lm
-	@$(CC) $(CFLAGS) -o taxi_timer.o taxi_timer.c utils.o -lm
 	@$(CC) $(CFLAGS) -o taxi_change_detector.o linked_list.c taxi_change_detector.c utils.o sem_lib.c -lm
 	@$(CC) $(CFLAGS) -o master_timer.o master_timer.c utils.o -lm
 	@$(CC) $(CFLAGS) -o source.o source_main.c source.c utils.o -lm

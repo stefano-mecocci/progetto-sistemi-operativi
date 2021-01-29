@@ -26,9 +26,7 @@ typedef struct cell
 {
   enum cell_type type;
   int capacity;
-  int act_capacity;
   int cross_time;
-  int crossing_num;
 } Cell;
 
 /* Città = array di lunghezza SO_WIDTH * SO_HEIGHT */
@@ -139,7 +137,6 @@ typedef struct spawn
 #define SPAWN 2
 #define RESPAWN 3
 
-#define EXIT_TIMER EXIT_SUCCESS
-#define EXIT_ERROR EXIT_FAILURE
+#define EXIT_TIMER 2
 
 #endif
