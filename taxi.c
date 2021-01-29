@@ -172,13 +172,17 @@ uint8_t get_map_cost(const uint32_t x, const uint32_t y)
 {
   int index = coordinates2index(x, y);
   enum cell_type type = g_city[index].type;
-  uint8_t cost = type == CELL_HOLE ? COST_BLOCKED : 1;
+  int capacity = g_city[index].capacity;
+  
+  uint8_t cost = type == CELL_HOLE || capacity == 0 ? 
+    COST_BLOCKED : 
+    SO_CAP_MAX - capacity + 1;
   return cost;
 }
 
 void init_astar()
 {
-  /* Allocate an A* context. */
+  /* Allocate the A* context. */
   g_as = astar_new(SO_WIDTH, SO_HEIGHT, get_map_cost, NULL);
   astar_set_origin(g_as, 0, 0);
   astar_set_movement_mode(g_as, DIR_CARDINAL);
