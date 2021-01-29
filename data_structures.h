@@ -6,7 +6,10 @@
 
 #define SEM_SYNC_TAXI 0
 #define SEM_SYNC_SOURCES 1
-#define SEM_ALIVES_TAXI 2
+#define SPAWN 2
+#define RESPAWN 3
+#define EXIT_TIMER 2
+
 
 /* Tipo di cella */
 enum cell_type
@@ -39,7 +42,6 @@ typedef struct point
   int y;
 } Point;
 
-/* Per comodità */
 enum Bool
 {
   FALSE,
@@ -134,9 +136,15 @@ typedef struct spawn
   int mtext[2];
 } SpawnMsg;
 
-#define SPAWN 2
-#define RESPAWN 3
+enum PrintMode {
+  ACT_CAPACITY,
+  SOURCES,
+  TOP_CELLS
+};
 
-#define EXIT_TIMER 2
+typedef struct tuple{
+  int key;
+  int value;
+} Tuple;
 
 #endif

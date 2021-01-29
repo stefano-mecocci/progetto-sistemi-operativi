@@ -37,7 +37,7 @@ FILE *unserved_f;
 FILE *report_file;
 
 /* STATISTICHE */
-int *g_top_cells = NULL;                /* posizione celle più attraversate */
+Tuple *g_top_cells = NULL;                /* posizione celle più attraversate */
 
 TaxiStats g_most_street = {-1, -1, -1, -1};
 TaxiStats g_longest_travel_time = {-1, -1, -1, -1};
@@ -50,6 +50,8 @@ int g_aborted_requests = 0;
 int *g_crossed_cells_num = NULL;
 List g_taxi_pids = NULL;
 
+int g_city_id;
+int g_city_sems_cap;
 int g_taxi_info_msq_id;
 int g_requests_msq_id;
 TaxiStatus *g_taxi_status_list;
@@ -57,7 +59,7 @@ TaxiStatus *g_taxi_status_list;
 void init_stats() {
   int i;
 
-  g_top_cells = malloc(sizeof(int) * SO_TOP_CELLS);
+  g_top_cells = malloc(sizeof(Tuple) * SO_TOP_CELLS);
   g_crossed_cells_num = malloc(sizeof(int) * SO_WIDTH * SO_HEIGHT);
 
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++) {
@@ -68,6 +70,8 @@ void init_stats() {
 int main(int argc, char const *argv[])
 {
   set_handler();
+  g_city_id = read_id_from_file("city_id");
+  g_city_sems_cap = read_id_from_file("city_sems_cap");
   g_taxi_info_msq_id = read_id_from_file("taxi_info_msq");
   g_requests_msq_id = read_id_from_file("requests_msq");
   init_stats();
@@ -306,20 +310,20 @@ void set_handler()
   sigaction(SIGTERM, &act, NULL);
 }
 
-int find_highest_cell() {
+Tuple find_highest_cell() {
+  Tuple res = { -1, -1 };
   int i;
-  int max_index = -1, max = -1;
 
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++) {
-    if (g_crossed_cells_num[i] >= max) {
-      max_index = i;
-      max = g_crossed_cells_num[i];
+    if (g_crossed_cells_num[i] > res.value) {
+      res.key = i;
+      res.value = g_crossed_cells_num[i];
     }
   }
 
-  g_crossed_cells_num[max_index] = -1; /* porcata */
+  g_crossed_cells_num[res.key] = -1;
 
-  return max_index;
+  return res;
 }
 
 void calc_top_cells() {
@@ -330,7 +334,24 @@ void calc_top_cells() {
   }
 }
 
-void copy_taxi_stats(TaxiStats *src, TaxiStats *dest)
+int get_top_cell_value(int index){
+  int i = 0, found = 0;
+  while (found == 0 && i < SO_TOP_CELLS) {
+    /* printf("idx: %d\n", g_top_cells[i].key); */
+    if (g_top_cells[i].key == index)
+    {
+      found++;
+    }
+    else
+    {
+      i++;
+    }
+  }
+
+  return found > 0 ? g_top_cells[i].value : -1;
+}
+
+void copy_taxi_stats(const TaxiStats *src, TaxiStats *dest)
 {
   dest->crossed_cells = src->crossed_cells;
   dest->longest_travel_time = src->longest_travel_time;
@@ -380,28 +401,43 @@ void fprint_taxi_cells(FILE *report_file, TaxiStats taxi) {
   fprintf(report_file, "- Crossed cells = %d\n\n", taxi.crossed_cells);
 }
 
+#define SEPARATOR "\n--------------------------------------------------\n"
+
 void write_stats_to_report_file() {
   int i;
+  Point p;
 
   report_file = fopen(REPORT_FILE, "w+");
   CHECK_FILE(report_file, REPORT_FILE)
 
-  fprintf(report_file, "\nSuccessed requests: %d\n", g_successed_requests);
+  fprintf(report_file, SEPARATOR);
+  fprintf(report_file, "\nSucceded requests: %d\n", g_successed_requests);
   fprintf(report_file, "Unserved requests: %d\n", g_unserved_requests);
-  fprintf(report_file, "Aborted requests: %d\n\n", g_aborted_requests);
+  fprintf(report_file, "Aborted requests: %d\n", g_aborted_requests);
 
-  fprintf(report_file, "\nTop cells: ");
+  fprintf(report_file, SEPARATOR);
+  fprintf(report_file, "Top cells: (x, y) - # \n");
   for (i = 0; i < SO_TOP_CELLS; i++) {
-    fprintf(report_file, "%d ", g_top_cells[i]);
+    p = index2point(g_top_cells[i].key);
+    fprintf(report_file, "(%d, %d) - %d\n ", p.x, p.y, g_top_cells[i].value);
   }
-  fprintf(report_file, "\n\n");
 
-  fprintf(report_file, "Taxi who did most street:\n");
+  print_city(report_file, g_city_id, g_city_sems_cap, TOP_CELLS, get_top_cell_value);
+
+  fprintf(report_file, SEPARATOR);
+  
+  fprintf(report_file, "Sources:\n");
+  print_city(report_file, g_city_id, g_city_sems_cap, SOURCES, get_top_cell_value);
+
+  fprintf(report_file, SEPARATOR);
+
+  fprintf(report_file, "Taxi who travelled most (distance):\n");
   fprint_taxi_cells(report_file, g_most_street);
-  fprintf(report_file, "Taxi who did the longest travel:\n");
+  fprintf(report_file, "Taxi who travelled most (time):\n");
   fprint_taxi_time(report_file, g_longest_travel_time);
-  fprintf(report_file, "Taxi who take most requests:\n");
+  fprintf(report_file, "Taxi who took more requests:\n");
   fprint_taxi_requests(report_file, g_most_requests);
+
 }
 
 /* Signal handler del processo taxi_change_detector */

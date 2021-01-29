@@ -1,5 +1,6 @@
 #include "data_structures.h"
 #include <math.h>
+#include <stdio.h>
 
 #define HIT printf("hit\n");
 
@@ -36,6 +37,10 @@
         printf("Error opening file %s!\n", name);\
         exit(1);\
     }\
+
+#define NONE_SYMBOL " ."
+#define HOLE_SYMBOL " X"
+#define SOURCE_SYMBOL " S"
 
 /* Returns map point from given index */
 extern Point index2point(int index);
@@ -76,3 +81,6 @@ extern long get_milliseconds();
 extern void reset_stopwatch();
 
 extern long record_stopwatch();
+
+/* Stampa la città in ASCII */
+extern void print_city(FILE *fd, int city_id, int city_sems_cap, enum PrintMode mode, int (*get_cell_val)(int));

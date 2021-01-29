@@ -64,7 +64,4 @@ extern void start_timer();
 /* Crea i processi sorgente */
 extern void create_sources();
 
-/* Stampa la città in ASCII */
-extern void print_city(int city_id);
-
 #endif
