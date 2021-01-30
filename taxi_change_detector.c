@@ -61,7 +61,9 @@ void init_stats()
   int i;
 
   g_top_cells = malloc(sizeof(Tuple) * SO_TOP_CELLS);
+  DEBUG_RAISE_ADDR(g_top_cells);
   g_crossed_cells_num = malloc(sizeof(int) * SO_WIDTH * SO_HEIGHT);
+  DEBUG_RAISE_ADDR(g_crossed_cells_num);
 
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
   {

@@ -77,7 +77,7 @@ int main(int argc, char const *argv[])
     /* gather path to destination */
     path = get_path(get_position(), req.mtext.destination, &steps);
     travel(path, steps);
-    if (get_position() != req.mtext.origin)
+    if (get_position() != req.mtext.destination)
     {
       errno = 0;
       printf("Taxi %d did not reach the correct destination.\n", getpid());
