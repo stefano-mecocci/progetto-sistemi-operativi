@@ -107,12 +107,4 @@ Create change detector process
 */
 extern void start_change_detector();
 
-/*
-Print the city map in ASCII where:
-- empty cells (no taxi) are "."
-- cells with 1+ taxi are numbers "<n>"
-- holes are "x"
-*/
-extern void print_city(int city_id);
-
 #endif

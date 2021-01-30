@@ -324,40 +324,6 @@ void start_change_detector()
   }
 }
 
-void print_city(int city_id)
-{
-  City city = shmat(city_id, NULL, 0);
-  int i, taxi_num;
-
-  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
-  {
-    if (i % SO_WIDTH == 0)
-    {
-      printf("\n");
-    }
-    if (city[i].type == CELL_HOLE)
-      {
-        printf("\033[0;31mx\033[0m ");
-      }
-      else
-      {
-        taxi_num = city[i].capacity - semctl(g_city_sems_cap, i, GETVAL);
-
-        if (taxi_num == 0)
-        {
-          printf(". ");
-        }
-        else
-        {
-          printf("\033[0;32m%d\033[0m ", taxi_num);
-        }
-      }
-  }
-
-  printf("\n\n");
-  shmdt(city);
-}
-
 /*
 ====================================
   "PRIVATE"

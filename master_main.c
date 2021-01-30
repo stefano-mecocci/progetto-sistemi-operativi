@@ -56,7 +56,7 @@ int main() {
 
   while (TRUE) {
     sleep_for(PRINT_INTERVAL, 0);
-    print_city(city_id);
+    print_city(stdout, city_id, city_sems_cap, ACT_CAPACITY, NULL);
   }
 
   return 0;

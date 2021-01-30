@@ -18,6 +18,13 @@
 
 long g_start;
 
+int coordinates2index(int x, int y){
+  Point p;
+  p.x = x;
+  p.y = y;
+  return point2index(p);
+}
+
 /* Conversione indice -> punto */
 Point index2point(int index)
 {
@@ -36,13 +43,6 @@ int point2index(Point p) { return (SO_WIDTH * (p.y - 1)) + p.x -1; }
 int indexes_delta(int idx1, int idx2)
 {
   return points_delta(index2point(idx1), index2point(idx2));
-}
-
-int coordinates2index(int x, int y){
-  Point p;
-  p.x = x;
-  p.y = y;
-  return point2index(p);
 }
 
 /* Returns taxicab distance between map points */
@@ -126,7 +126,6 @@ int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status)
 void block_signal(int signum)
 {
   sigset_t mask;
-  /* bzero(&mask, sizeof mask); */
   sigemptyset(&mask);
   sigaddset(&mask, signum);
   sigprocmask(SIG_BLOCK, &mask, NULL);
@@ -135,7 +134,6 @@ void block_signal(int signum)
 void unblock_signal(int signum)
 {
   sigset_t mask;
-  /* bzero(&mask, sizeof mask); */
   sigemptyset(&mask);
   sigaddset(&mask, signum);
   sigprocmask(SIG_UNBLOCK, &mask, NULL);
@@ -157,4 +155,56 @@ void reset_stopwatch() {
 
 long record_stopwatch() {
   return get_milliseconds() - g_start;
+}
+
+void print_city(FILE *fd, int city_id, int city_sems_cap, enum PrintMode mode, int (*get_cell_val)(int))
+{
+  City city = shmat(city_id, NULL, 0);
+  int i, taxi_num, val;
+
+  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
+  {
+    if (i % SO_WIDTH == 0)
+    {
+      fprintf(fd, "\n");
+    }
+
+    if (city[i].type == CELL_HOLE)
+    {
+      fprintf(fd, HOLE_SYMBOL);
+    }
+    else if (mode == TOP_CELLS)
+    {
+      val = get_cell_val(i);
+      if(val >= 0){
+        fprintf(fd, "%2d", val);
+      } else{
+        fprintf(fd, NONE_SYMBOL);
+      }
+    }
+    else if (mode == SOURCES)
+    {
+      if(city[i].type == CELL_SOURCE){
+        fprintf(fd, SOURCE_SYMBOL);
+      } else{
+        fprintf(fd, NONE_SYMBOL);
+      }
+    }
+    else
+    {
+      taxi_num = city[i].capacity - semctl(city_sems_cap, i, GETVAL);
+
+      if (taxi_num == 0)
+      {
+        fprintf(fd, NONE_SYMBOL);
+      }
+      else
+      {
+        fprintf(fd, "%2d", taxi_num);
+      }
+    }
+  }
+
+  fprintf(fd, "\n\n");
+  shmdt(city);
 }
