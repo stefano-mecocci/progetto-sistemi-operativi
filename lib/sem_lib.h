@@ -1,3 +1,6 @@
+#ifndef _SEMLIB_H
+#define _SEMLIB_H
+
 #define _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -58,3 +61,5 @@ extern int sem_reserve(int sem_id, int sem_num);
 extern int sem_release(int sem_id, int sem_num);
 
 extern int sem_getall(char *my_string, int sem_id);
+
+#endif
