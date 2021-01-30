@@ -1,5 +1,5 @@
-#include "params.h"
-#include "utils.h"
+#include "lib/params.h"
+#include "lib/utils.h"
 #include <signal.h>
 #include <unistd.h>
 #include <time.h>

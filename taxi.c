@@ -1,12 +1,10 @@
 #define _GNU_SOURCE
 
-#include "taxi.h"
-#include "data_structures.h"
-#include "params.h"
-#include "utils.h"
-#include "sem_lib.h"
-#include "astar/astar.h"
-
+#include "lib/data_structures.h"
+#include "lib/params.h"
+#include "lib/taxi_lib.h"
+#include "lib/utils.h"
+#include "lib/astar/astar.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -17,273 +15,80 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
-#define TAXIPIDS_SIZE (SO_TAXI + 1)
-
-clockid_t g_stopwatch;
-
-int g_taxi_spawn_msq;
-int g_taxi_info_msq;
-int g_sync_sems;
-int g_city_id;
-int g_city_sems_cap;
-int g_requests_msq;
-City g_city;
-
-enum Bool g_serving_req = FALSE;
-RequestMsg *g_last_request;
-pid_t g_master_pid;
-int g_pos;
-astar_t *g_as;
-
-void taxi_handler(int, siginfo_t *, void *);
-void send_spawn_request();
-void print_path(direction_t *directions, int steps);
-void insert_aborted_request();
-
-/*
-====================================
-  PUBLIC
-====================================
-*/
-
-void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, int city_id, int city_sems_cap, int requests_msq)
-{
-  g_taxi_spawn_msq = taxi_spawn_msq;
-  g_taxi_info_msq = taxi_info_msq;
-  g_sync_sems = sync_sems;
-  g_city_id = city_id;
-  g_city_sems_cap = city_sems_cap;
-  g_requests_msq = requests_msq;
-}
-
-void init_data(int master_pid, int pos)
-{
-  g_master_pid = master_pid;
-  g_pos = pos;
-}
-
-void copy_city(){
-  int i;
-  g_city = malloc(sizeof(Cell)*(SO_WIDTH * SO_HEIGHT));
-  City city = shmat(g_city_id, NULL, SHM_RDONLY);
-  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
-  {
-    g_city[i].type = city[i].type;
-    g_city[i].cross_time = city[i].cross_time;
-    g_city[i].capacity = city[i].capacity;
-  }
-  shmdt(city);
-}
-
-int get_position()
-{
-  return g_pos;
-}
-
-void set_position(int addr)
-{
-  g_pos = addr;
-}
-
-void start_timer()
-{
-  alarm(SO_TIMEOUT);
-}
-
-void receive_ride_request(RequestMsg *req)
-{
+int main(int argc, char const *argv[]) {
   int err;
-  err = msgrcv(g_requests_msq, req, sizeof req->mtext, FAILED, MSG_EXCEPT);
-  DEBUG_RAISE_INT(g_master_pid, err);
-  g_last_request = req;
-}
-
-void set_handler()
-{
-  struct sigaction act;
-  bzero(&act, sizeof act);
-
-  act.sa_sigaction = taxi_handler;
-  act.sa_flags = SA_NODEFER | SA_SIGINFO;
-
-  sigaction(SIGALRM, &act, NULL);
-  sigaction(SIGTERM, &act, NULL);
-}
-
-/*
-====================================
-  PRIVATE
-====================================
-*/
-
-void taxi_handler(int signum, siginfo_t *info, void *context)
-{
-  int i, err, timer_status;
+  int taxi_spawn_msq = read_id_from_file(IPC_TAXI_SPAWN_MSQ_FILE);
+  int taxi_info_msq = read_id_from_file(IPC_TAXI_INFO_MSQ_FILE);
+  int requests_msq = read_id_from_file(IPC_REQUESTS_MSQ_FILE);
+  int sync_sems = read_id_from_file(IPC_SYNC_SEMS_FILE);
+  int city_sems_cap = read_id_from_file(IPC_CITY_SEMS_CAP_FILE);
+  int city_id = read_id_from_file(IPC_CITY_ID_FILE);
+  int is_respawned = atoi(argv[1]);
+  RequestMsg req;
   TaxiStatus status;
-  status.pid = getpid();
-  status.position = g_pos;
-
-  switch (signum)
-  {
-  case SIGALRM:
-    err = send_taxi_update(g_taxi_info_msq, TIMEOUT, status);
-    DEBUG_RAISE_INT(err);
-    send_spawn_request(); 
-    if (g_serving_req == TRUE)
-    {
-      insert_aborted_request();
-    }
-    exit(EXIT_TIMER);
-
-    break;
-
-  case SIGTERM:
-    send_taxi_update(g_taxi_info_msq, ABORTED, status);
-
-    if (g_serving_req == TRUE)
-    {
-      insert_aborted_request();
-    }
-    exit(EXIT_SUCCESS);
-    break;
-  }
-}
-
-/* Invia una richiesta di spawn a taxigen */
-void send_spawn_request()
-{
-  SpawnMsg req;
-  int err;
-
-  req.mtype = RESPAWN;
-  req.mtext[0] = getpid();
-  req.mtext[1] = g_pos;
-
-  err = msgsnd(g_taxi_spawn_msq, &req, sizeof req.mtext, 0);
-  DEBUG_RAISE_INT(g_master_pid, err);
-}
-
-uint8_t get_map_cost(const uint32_t x, const uint32_t y)
-{
-  int index = coordinates2index(x, y);
-  enum cell_type type = g_city[index].type;
-  int capacity = g_city[index].capacity;
+  direction_t *path;
+  long last_travel_duration;
+  int steps = 0, started = 0;
   
-  uint8_t cost = type == CELL_HOLE || capacity == 0 ? 
-    COST_BLOCKED : 
-    SO_CAP_MAX - capacity + 1;
-  return cost;
-}
+  init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap, requests_msq);
+  init_data(atoi(argv[2]), atoi(argv[3]));
+  set_handler();
+  copy_city();
 
-void init_astar()
-{
-  /* Allocate the A* context. */
-  g_as = astar_new(SO_WIDTH, SO_HEIGHT, get_map_cost, NULL);
-  astar_set_origin(g_as, 0, 0);
-  astar_set_movement_mode(g_as, DIR_CARDINAL);
-}
-
-direction_t *get_path(int position, int destination, int *steps)
-{
-  direction_t *directions;
-  Point start = index2point(position);
-  Point end = index2point(destination);
-
-  /* Look for a route. */
-  int result = astar_run(g_as, start.x, start.y, end.x, end.y);
-  if (astar_have_route(g_as))
-  {
-    *steps = astar_get_directions(g_as, &directions);
-    DEBUG_RAISE_INT(result);
+  if (is_respawned == FALSE) {
+    err = sem_op(sync_sems, SEM_SYNC_TAXI, -1, 0);
+    DEBUG_RAISE_INT(err);
   }
-  return directions;
-}
 
-void travel(direction_t *directions, int steps)
-{
-  int i, x, y, crossing_time, next_addr;
-  TaxiStatus status;
-  Point p = index2point(get_position());
-  direction_t *dir = directions;
-  for (i = 0; i < steps; i++, dir++)
-  {
-    x = p.x;
-    y = p.y;
-    /* Get the next (x, y) co-ordinates of the map. */
-    p.x += astar_get_dx(g_as, *dir);
-    p.y += astar_get_dy(g_as, *dir);
-    next_addr = point2index(p);
-    /* printf("step %d: from %d (%d, %d) to %d (%d, %d)\n", 
-      i + 1, 
-      get_position(),
-      x, 
-      y,
-      next_addr,
-      p.x, 
-      p.y
-    ); */
-    crossing_time = g_city[next_addr].cross_time;
+  status.longest_travel_time = 0;
+  init_astar();
+  start_timer();
+  
+  while(TRUE){
+    set_aborted_request(FALSE);
+    receive_ride_request(&req);
+    set_aborted_request(TRUE);
 
-    sem_reserve(g_city_sems_cap, next_addr);
-    sem_release(g_city_sems_cap, get_position());
-
-    start_timer();
-
-    set_position(next_addr);
-    sleep_for(0, crossing_time);
-
+    reset_stopwatch();
+  
+    if (started == 0)
+    {
+      /* start_timer(); */
+      started++;
+    }
+    if(req.mtext.origin != get_position()){
+      /* gather path to source */
+      path = get_path(get_position(), req.mtext.origin, &steps);
+      travel(path, steps);
+      if(get_position() != req.mtext.origin){
+        errno = 0;
+        printf("Taxi %d did not reach the correct source for pickup.\n", getpid());
+        raise(SIGALRM);
+      }
+    }
+    printf("START RIDE\n");
     status.available = FALSE;
     status.pid = getpid();
     status.position = get_position();
+    send_taxi_update(taxi_info_msq, PICKUP, status);
+    /* gather path to destination */
+    path = get_path(get_position(), req.mtext.destination, &steps);
+    travel(path, steps);
+    printf("END RIDE\n");
+    last_travel_duration = record_stopwatch();
+    status.available = TRUE;
+    status.pid = getpid();
+    status.position = get_position();
 
-    send_taxi_update(g_taxi_info_msq, BASICMOV, status);
+    if (last_travel_duration > status.longest_travel_time) {
+      status.longest_travel_time = last_travel_duration;
+    }
+
+    send_taxi_update(taxi_info_msq, SERVED, status);
   }
 
-  astar_free_directions(directions);
-}
-
-void print_path(direction_t *directions, int steps)
-{
-  int i, x, y, crossing_time, next_addr;
-  TaxiStatus status;
-  Point p = index2point(get_position());
-  for (i = 0; i < steps; i++, directions++)
-  {
-    x = p.x;
-    y = p.y;
-    /* Get the next (x, y) co-ordinates of the map. */
-    p.x += astar_get_dx(g_as, *directions);
-    p.y += astar_get_dy(g_as, *directions);
-    next_addr = point2index(p);
-    printf("step %d: %d -> %d ; (%d, %d) -> (%d, %d)\n",
-           i + 1,
-           get_position(),
-           next_addr,
-           x,
-           y,
-           p.x,
-           p.y);
-  }
-}
-
-void set_aborted_request(enum Bool serving)
-{
-  g_serving_req = serving;
-}
-
-void insert_aborted_request()
-{
-  RequestMsg req;
-  if (g_last_request != NULL)
-  {
-    req.mtype = (int)FAILED;
-    req.mtext.origin = g_last_request->mtext.origin;
-    req.mtext.destination = g_last_request->mtext.destination;
-    int err = msgsnd(g_requests_msq, &req, sizeof(Ride), 0);
-    DEBUG_RAISE_INT(getppid(), err);
-  }
+  return 0;
 }

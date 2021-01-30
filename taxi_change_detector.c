@@ -1,11 +1,11 @@
 #define _GNU_SOURCE
 
-#include "params.h"
-#include "data_structures.h"
-#include "params.h"
-#include "sem_lib.h"
-#include "utils.h"
-#include "linked_list.h"
+#include "lib/params.h"
+#include "lib/data_structures.h"
+#include "lib/params.h"
+#include "lib/sem_lib.h"
+#include "lib/utils.h"
+#include "lib/linked_list.h"
 
 #include <errno.h>
 #include <signal.h>
@@ -337,7 +337,6 @@ void calc_top_cells() {
 int get_top_cell_value(int index){
   int i = 0, found = 0;
   while (found == 0 && i < SO_TOP_CELLS) {
-    /* printf("idx: %d\n", g_top_cells[i].key); */
     if (g_top_cells[i].key == index)
     {
       found++;
