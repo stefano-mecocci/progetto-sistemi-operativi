@@ -18,7 +18,6 @@ int main() {
   int err;
   int city_id = create_city();
   int sync_sems = create_sync_sems();
-  int city_sems_op = create_city_sems_op();
   int city_sems_cap = create_city_sems_cap();
   int requests_msq = create_requests_msq();
   int taxi_info_msq = create_taxi_info_msq();
@@ -26,7 +25,6 @@ int main() {
 
   write_id_to_file(city_id, "city_id");
   write_id_to_file(sync_sems, "sync_sems");
-  write_id_to_file(city_sems_op, "city_sems_op");
   write_id_to_file(city_sems_cap, "city_sems_cap");
   write_id_to_file(requests_msq, "requests_msq");
   write_id_to_file(taxi_spawn_msq, "taxi_spawn_msq");
@@ -42,7 +40,6 @@ int main() {
   place_city_holes(city_id);
 
   init_sync_sems(sync_sems);
-  init_city_sems_op(city_sems_op);
   init_city_sems_cap(city_id, city_sems_cap);
 
   create_sources();
@@ -53,7 +50,6 @@ int main() {
   create_taxis(taxi_spawn_msq);
   err = sem_op(sync_sems, SEM_SYNC_TAXI, 0, 0);
   DEBUG_RAISE_INT(err);
-  
   
   start_timer();
   start_change_detector();

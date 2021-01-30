@@ -142,7 +142,6 @@ void taxi_handler(int signum, siginfo_t *info, void *context)
     break;
 
   case SIGTERM:
-    printf("[taxi](%d) ABORTING\n", getpid());
     send_taxi_update(g_taxi_info_msq, ABORTED, status);
 
     if (g_serving_req == TRUE)

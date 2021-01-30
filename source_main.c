@@ -14,7 +14,6 @@ int main(int argc, char const *argv[]) {
   int city_id = read_id_from_file("city_id");
   int origin = atoi(argv[1]);
   RequestMsg req;
-  printf("[source] pid=%d\n", getpid());
 
 	srand(time(NULL)^getpid());
 

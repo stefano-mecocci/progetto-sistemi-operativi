@@ -24,7 +24,6 @@ int main() {
   int sync_sems = read_id_from_file("sync_sems");
   int city_id = read_id_from_file("city_id");
   int city_sems_cap = read_id_from_file("city_sems_cap");
-  int city_sems_op = read_id_from_file("city_sems_op");
   int pos, err;
   SpawnMsg req;
   TaxiStatus status;

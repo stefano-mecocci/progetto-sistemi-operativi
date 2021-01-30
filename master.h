@@ -3,68 +3,116 @@
 
 #include <sys/types.h>
 
-/* Città array in shm */
+/*
+Create the city in IPC shared memory
+(see data_structures.h)
+*/
 extern int create_city();
 
-/* Array semafori per sincronizzazioni */
+/*
+Create the IPC semaphore array for syncronization
+of length 2
+
+- 0 : syncronize created taxis
+- 1 : syncronize created sources
+*/
 extern int create_sync_sems();
 
-/* Array semafori per operare su celle */
-extern int create_city_sems_op();
-
-/* Array semafori per controllare la capacità */
+/*
+Create the IPC semaphore array for cells
+capacity, with length SO_WIDTH * SO_HEIGHT
+*/
 extern int create_city_sems_cap();
 
-/* Coda per richieste taxi */
+/*
+Create requests IPC message queue
+*/
 extern int create_requests_msq();
 
-/* Coda per info taxi per statistiche */
+/*
+Create IPC message queue for taxi updates
+*/
 extern int create_taxi_info_msq();
 
-/* Coda per (re)spawnare taxi */
+/*
+Create the IPC message queue to spawn taxi
+*/
 extern int create_taxi_spawn_msq();
 
-/* Controlla i parametri */
+/*
+Check if configuration parameters are correct
+*/
 extern void check_params();
 
 /*
-Inizializza i dati globali:
-- entità (source_pids e taxigen_pid)
-- statistiche (g_travels, g_top_cells e taxi vari)
+Initialize global data of master:
+- processes pids (sources, taxigen, change_detector)
+- other (g_source_positions)
 */
 extern void init_data();
 
-/* Imposta il signal handler di master */
+/*
+Sets the master signal handler for:
+- SIGINT (debug)
+- SIGTERM (debug)
+- SIGUSR1 (ask sources to generate a taxi request)
+- SIGUSR2 (simulation timer)
+*/
 extern void set_handler();
 
-/* Inizializza le celle della città */
+/*
+Initialize the city cells (see data_structures.h)
+*/
 extern void init_city_cells(int city_id);
 
-/* Inizializza semafori di sincronizzazione */
+/*
+Initialize syncronization semaphores
+- 0 : SO_TAXI
+- 1 : SO_SOURCES
+*/
 extern void init_sync_sems(int sync_sems);
 
-/* Inizializza semafori "modificabile" a 1 = modificabile */
-extern void init_city_sems_op(int city_sems_op);
-
-/* Inizializza i semafori capacità alla cap. collegata */
+/*
+Initialize capacity semaphores to capacity from cell
+*/
 extern void init_city_sems_cap(int city_id, int city_sems_cap);
 
-/* Piazza SO_HOLES buche nella città */
+/*
+Place SO_HOLES holes in the city
+*/
 extern void place_city_holes(int city_id);
 
-/* Crea il processo taxigen */
+/*
+Create taxigen process
+*/
 extern void create_taxigen();
 
-/* Manda SO_TAXI messaggi per far creare i relativi processi */
+/*
+Sends SO_TAXI messages to create taxi processes
+*/
 extern void create_taxis(int taxi_spawn_msq);
 
-/* Avvio il timer di master di SO_DURATION secondi */
-extern void start_timer();
-
-/* Crea i processi sorgente */
+/*
+Create SO_SOURCES source processes with random position for each
+*/
 extern void create_sources();
 
-/* Stampa la città in ASCII */
+/*
+Start master timer of SO_DURATION seconds
+*/
+extern void start_timer();
+
+/*
+Create change detector process
+*/
+extern void start_change_detector();
+
+/*
+Print the city map in ASCII where:
+- empty cells (no taxi) are "."
+- cells with 1+ taxi are numbers "<n>"
+- holes are "x"
+*/
 extern void print_city(int city_id);
 
 #endif

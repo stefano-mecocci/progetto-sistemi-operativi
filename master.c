@@ -19,41 +19,40 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-
 #define ADJACENT_CELLS_NUM 8
 
-/* OGGETTI IPC */
-int g_city_id;        /* città */
-int g_sync_sems;      /* semafori di sync */
-int g_city_sems_op;   /* semafori per operare su celle */
-int g_city_sems_cap;  /* semafori per controllare capacità */
-int g_requests_msq;   /* Coda richieste */
-int g_taxi_info_msq;  /* Coda informazioni statistiche */
-int g_taxi_spawn_msq; /* Coda spawns */
+/* global variables */
+int g_city_id;
+int g_sync_sems;
+int g_city_sems_cap;
+int g_requests_msq;
+int g_taxi_info_msq;
+int g_taxi_spawn_msq;
 
-/* ENTITÀ */
 pid_t *g_source_pids;
 pid_t g_taxigen_pid;
 pid_t g_mastertimer_pid;
-pid_t g_changedetector_pid;
+pid_t g_change_detector_pid;
+
 int *g_sources_positions;
 
+/* prototypes of "private" functions */
 void master_handler(int signum);
 void clear_memory();
 void generate_adjacent_list(Point p, int list[]);
 int is_valid_hole_point(Point p, City city);
 void place_hole(int pos, City city);
 void create_source(int position);
-int generate_origin_point(int, int);
+int generate_origin_point(int city_id);
 void update_taxi_stats(int taxi_msg[]);
 void send_signal_to_taxigen(int signal);
-void send_signal_to_changedetector(int signal);
+void send_signal_to_change_detector(int signal);
 void send_signal_to_mastertimer(int signal);
 void send_signal_to_sources(int signal);
 
 /*
 ====================================
-  FUNZIONI "PUBBLICHE"
+  "PUBLIC"
 ====================================
 */
 
@@ -70,20 +69,9 @@ int create_city()
 
 int create_sync_sems()
 {
-  int nsems = 3;
+  int nsems = 2;
   int id = semget(IPC_PRIVATE, nsems, 0660 | IPC_CREAT);
   g_sync_sems = id;
-
-  DEBUG_RAISE_INT(id);
-
-  return id;
-}
-
-int create_city_sems_op()
-{
-  int nsems = SO_WIDTH * SO_HEIGHT;
-  int id = semget(IPC_PRIVATE, nsems, 0660 | IPC_CREAT);
-  g_city_sems_op = id;
 
   DEBUG_RAISE_INT(id);
 
@@ -130,39 +118,13 @@ int create_taxi_spawn_msq()
   return id;
 }
 
-void check_params()
-{
-  if (SO_SOURCES > (SO_WIDTH * SO_HEIGHT - SO_HOLES))
-  {
-    printf("Errore: troppe sorgenti, città troppo piccola o troppe buche\n");
-    raise(SIGTERM);
-  }
-
-  if (SO_CAP_MIN > SO_CAP_MAX)
-  {
-    printf("Errore: SO_CAP_MIN maggiore di SO_CAP_MAX\n");
-    raise(SIGTERM);
-  }
-
-  if (SO_TIMENSEC_MIN > SO_TIMENSEC_MAX)
-  {
-    printf("Errore: SO_TIMENSEC_MIN maggiore di SO_TIMENSEC_MAX\n");
-    raise(SIGTERM);
-  }
-
-  if (SO_TIMEOUT >= SO_DURATION)
-  {
-    printf("Errore: SO_TIMEOUT maggiore di SO_DURATION\n");
-    raise(SIGTERM);
-  }
-}
-
 void init_data()
 {
   int i;
 
   g_source_pids = malloc(sizeof(pid_t) * SO_SOURCES);
   g_taxigen_pid = -1;
+  g_change_detector_pid = -1;
   g_sources_positions = malloc(sizeof(int) * SO_SOURCES);
 
   DEBUG_RAISE_ADDR(g_source_pids);
@@ -211,16 +173,6 @@ void init_sync_sems(int sync_sems)
   err += semctl(sync_sems, SEM_SYNC_SOURCES, SETVAL, SO_SOURCES);
 
   DEBUG_RAISE_INT(err);
-}
-
-void init_city_sems_op(int city_sems_op)
-{
-  int i;
-
-  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
-  {
-    semctl(city_sems_op, i, SETVAL, 1);
-  }
 }
 
 void init_city_sems_cap(int city_id, int city_sems_cap)
@@ -304,7 +256,7 @@ void create_sources()
 
   for (i = 0; i < SO_SOURCES; i++)
   {
-    source_point = generate_origin_point(g_city_id, g_city_sems_op);
+    source_point = generate_origin_point(g_city_id);
     pid = fork();
 
     DEBUG_RAISE_INT(pid);
@@ -368,7 +320,7 @@ void start_change_detector()
   }
   else
   {
-    g_changedetector_pid = change_detector_pid;
+    g_change_detector_pid = change_detector_pid;
   }
 }
 
@@ -385,7 +337,7 @@ void print_city(int city_id)
     }
     if (city[i].type == CELL_HOLE)
       {
-        printf("x ");
+        printf("\033[0;31mx\033[0m ");
       }
       else
       {
@@ -397,7 +349,7 @@ void print_city(int city_id)
         }
         else
         {
-          printf("%d ", taxi_num);
+          printf("\033[0;32m%d\033[0m ", taxi_num);
         }
       }
   }
@@ -408,20 +360,20 @@ void print_city(int city_id)
 
 /*
 ====================================
-  FUNZIONI "PRIVATE"
+  "PRIVATE"
 ====================================
 */
 
-/* Pulisce la memoria dagli oggetti IPC usati e non solo */
+/*
+Remove IPC objects from memory and free some mallocs addresses
+*/
 void clear_memory()
 {
-  int err = 0, i;
+  int err = 0;
   
   err = shmctl(g_city_id, IPC_RMID, NULL);
   DEBUG_RAISE_INT(err);
   err = semctl(g_sync_sems, -1, IPC_RMID);
-  DEBUG_RAISE_INT(err);
-  err = semctl(g_city_sems_op, -1, IPC_RMID);
   DEBUG_RAISE_INT(err);
   err = semctl(g_city_sems_cap, -1, IPC_RMID);
   DEBUG_RAISE_INT(err);
@@ -436,19 +388,19 @@ void clear_memory()
   free(g_sources_positions);
 }
 
-/* Signal handler del processo master */
+/*
+Master signal handler (see set_handler())
+*/
 void master_handler(int signum)
 {
   int i, err, status;
   char selection;
 
-  struct sembuf bufor_sem;
-
   switch (signum)
   {
   case SIGINT:                      /* User paused from terminal */
     send_signal_to_taxigen(SIGINT); /* taxigen must stop by itself other sub processes */
-    send_signal_to_changedetector(SIGSTOP);
+    send_signal_to_change_detector(SIGSTOP);
     send_signal_to_mastertimer(SIGSTOP);
     send_signal_to_sources(SIGSTOP);
 
@@ -461,14 +413,14 @@ void master_handler(int signum)
     {
       /* continue */
       send_signal_to_taxigen(SIGCONT);
-      send_signal_to_changedetector(SIGCONT);
+      send_signal_to_change_detector(SIGCONT);
       send_signal_to_mastertimer(SIGCONT);
       send_signal_to_sources(SIGCONT);
     }
     else
     {
       send_signal_to_taxigen(SIGTERM);
-      send_signal_to_changedetector(SIGTERM);
+      send_signal_to_change_detector(SIGTERM);
       send_signal_to_mastertimer(SIGTERM);
       send_signal_to_sources(SIGTERM);
 
@@ -478,7 +430,7 @@ void master_handler(int signum)
     break;
   case SIGTERM: /* Interrupts the simulation - politely ask a program to terminate - can be blocked, handled, and ignored */
     send_signal_to_taxigen(SIGTERM);
-    send_signal_to_changedetector(SIGTERM);
+    send_signal_to_change_detector(SIGTERM);
     send_signal_to_mastertimer(SIGTERM);
     send_signal_to_sources(SIGTERM);
 
@@ -495,9 +447,9 @@ void master_handler(int signum)
     err = waitpid(g_taxigen_pid, &status, 0);
     DEBUG_RAISE_INT(err);
 
-    send_signal_to_changedetector(SIGTERM);
+    send_signal_to_change_detector(SIGTERM);
 
-    err = waitpid(g_changedetector_pid, &status, 0);
+    err = waitpid(g_change_detector_pid, &status, 0);
     DEBUG_RAISE_INT(err);
     
     clear_memory();
@@ -508,6 +460,9 @@ void master_handler(int signum)
   }
 }
 
+/*
+Send signal to taxigen if exists
+*/
 void send_signal_to_taxigen(int signal)
 {
   if (g_taxigen_pid != -1)
@@ -516,14 +471,20 @@ void send_signal_to_taxigen(int signal)
   }
 }
 
-void send_signal_to_changedetector(int signal)
+/*
+Send signal to change detector if exists
+*/
+void send_signal_to_change_detector(int signal)
 {
-  if (g_changedetector_pid != -1)
+  if (g_change_detector_pid != -1)
   {
-    kill(g_changedetector_pid, signal);
+    kill(g_change_detector_pid, signal);
   }
 }
 
+/*
+Send signal to master timer if exists
+*/
 void send_signal_to_mastertimer(int signal)
 {
   if (g_mastertimer_pid != -1)
@@ -532,9 +493,13 @@ void send_signal_to_mastertimer(int signal)
   }
 }
 
+/*
+Send signal to existing sources
+*/
 void send_signal_to_sources(int signal)
 {
   int i;
+  
   for (i = 0; i < SO_SOURCES; i++)
   {
     if (g_source_pids[i] != -1)
@@ -544,11 +509,13 @@ void send_signal_to_sources(int signal)
   }
 }
 
-/* Genera un punto di origine per source sulla città */
-int generate_origin_point(int city_id, int city_sems_op)
+/*
+Generate a valid origin point for source on city
+*/
+int generate_origin_point(int city_id)
 {
   City city = shmat(city_id, NULL, 0);
-  int pos = -1, done = FALSE, err;
+  int pos = -1, done = FALSE;
 
   while (!done)
   {
@@ -560,27 +527,22 @@ int generate_origin_point(int city_id, int city_sems_op)
     }
   }
 
-  /* Access the resource */
-  err = sem_op(city_sems_op, pos, -1, 0);
-  DEBUG_RAISE_INT(err);
-
   city[pos].type = CELL_SOURCE;
-
-  /* Release the resource */
-  err = sem_op(city_sems_op, pos, 1, 0);
-  DEBUG_RAISE_INT(err);
 
   shmdt(city);
   return pos;
 }
 
-/* Crea un processo sorgente */
+/*
+Create a source process passing position as argv[1]
+*/
 void create_source(int position)
 {
-  char str[5];
-  sprintf(str, "%d", position);
-  char *args[3] = {"source.o", str, NULL};
+  char position_str[12]; /* twelve are the max digits of an integer */
+  sprintf(position_str, "%d", position);
+  char *args[3] = {"source.o", position_str, NULL};
   int err;
+
   err = execve(args[0], args, environ);
 
   if (err == -1)
@@ -591,7 +553,12 @@ void create_source(int position)
   }
 }
 
-/* Genera una lista dei punti intorno a p */
+/*
+Generate a list of point near p
+x x x
+x . x
+x x x
+*/
 void generate_adjacent_list(Point p, int list[])
 {
   Point tmp;
@@ -614,7 +581,9 @@ void generate_adjacent_list(Point p, int list[])
   }
 }
 
-/* Verifica che p sia un punto valido per una buca */
+/*
+Check that p is a valid point for an hole
+*/
 int is_valid_hole_point(Point p, City city)
 {
   int list[ADJACENT_CELLS_NUM];
@@ -623,8 +592,7 @@ int is_valid_hole_point(Point p, City city)
 
   generate_adjacent_list(p, list);
 
-  /*TODO: use while(is_valid && i < 8) */
-  for (i = 0; i < 8; i++)
+  for (i = 0; is_valid && i < ADJACENT_CELLS_NUM; i++)
   {
     pos = list[i]; /* per chiarezza */
 
@@ -637,7 +605,9 @@ int is_valid_hole_point(Point p, City city)
   return is_valid;
 }
 
-/* Posiziona una buca in pos */
+/*
+Place an hole in city at pos
+*/
 void place_hole(int pos, City city)
 {
   city[pos].capacity = -1;

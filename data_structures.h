@@ -6,7 +6,6 @@
 
 #define SEM_SYNC_TAXI 0
 #define SEM_SYNC_SOURCES 1
-#define SEM_ALIVES_TAXI 2
 
 /* Tipo di cella */
 enum cell_type

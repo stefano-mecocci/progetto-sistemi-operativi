@@ -24,7 +24,6 @@ int main(int argc, char const *argv[]) {
   int taxi_info_msq = read_id_from_file("taxi_info_msq");
   int requests_msq = read_id_from_file("requests_msq");
   int sync_sems = read_id_from_file("sync_sems");
-  int city_sems_op = read_id_from_file("city_sems_op");
   int city_sems_cap = read_id_from_file("city_sems_cap");
   int city_id = read_id_from_file("city_id");
   int is_respawned = atoi(argv[1]);
