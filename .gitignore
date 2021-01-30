@@ -5,7 +5,7 @@
 *.o
 
 # folder for ipc id files
-ipc_res/*
+# ipc_res/*
 
 # info files
 *.txt
