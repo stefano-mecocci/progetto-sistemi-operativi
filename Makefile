@@ -1,43 +1,47 @@
 CC = gcc
-CFLAGS = -std=c89 -lm
+CFLAGS = -std=c89
+OBJ = ./obj/
 
-compile: clean utils.o
-	@$(CC) $(CFLAGS) -o master.o master.c master_main.c utils.o -lm
-	@$(CC) $(CFLAGS) -o taxigen.o taxigen.c taxigen_main.c utils.o -lm
-	@$(CC) $(CFLAGS) -o taxi.o taxi.c taxi_main.c utils.o astar/astar.c astar/astar_heap.c sem_lib.c -lm
-	@$(CC) $(CFLAGS) -o taxi_change_detector.o linked_list.c taxi_change_detector.c utils.o sem_lib.c -lm
-	@$(CC) $(CFLAGS) -o master_timer.o master_timer.c utils.o -lm
-	@$(CC) $(CFLAGS) -o source.o source_main.c source.c utils.o -lm
-	@$(CC) $(CFLAGS) -o path_finder.o path_finder.c astar/astar.c astar/astar_heap.c utils.c -lm
-	@$(CC) $(CFLAGS) -o print_queue.o print_queue.c utils.o -lm
+compile: create-dirs utils.o params.o
+	@echo "[\033[0;32mINFO\033[0m] compiling master..."
+	@$(CC) $(CFLAGS) -o $(OBJ)master.o master.c \
+		$(OBJ)params.o lib/master_lib.c $(OBJ)utils.o -lm
+	@echo "[\033[0;32mINFO\033[0m] compiling taxigen..."
+	@$(CC) $(CFLAGS) -o $(OBJ)taxigen.o taxigen.c \
+		$(OBJ)params.o lib/taxigen_lib.c $(OBJ)utils.o -lm
+	@echo "[\033[0;32mINFO\033[0m] compiling taxi..."
+	@$(CC) $(CFLAGS) -o $(OBJ)taxi.o taxi.c \
+		$(OBJ)params.o lib/taxi_lib.c $(OBJ)utils.o \
+		lib/astar/astar.c lib/astar/astar_heap.c lib/sem_lib.c -lm
+	@echo "[\033[0;32mINFO\033[0m] compiling change_detector..."
+	@$(CC) $(CFLAGS) -o $(OBJ)taxi_change_detector.o taxi_change_detector.c \
+		$(OBJ)params.o lib/linked_list.c $(OBJ)utils.o lib/sem_lib.c -lm
+	@echo "[\033[0;32mINFO\033[0m] compiling master_timer..."
+	@$(CC) $(CFLAGS) -o $(OBJ)master_timer.o master_timer.c \
+		$(OBJ)params.o $(OBJ)utils.o -lm
+	@echo "[\033[0;32mINFO\033[0m] compiling source..."
+	@$(CC) $(CFLAGS) -o $(OBJ)source.o source.c \
+		$(OBJ)params.o lib/source_lib.c $(OBJ)utils.o -lm
 
-utils.o: 
-	@$(CC) $(CFLAGS) -c utils.c 
+create-dirs:
+	@mkdir -p obj ipc_res out
+
+utils.o:
+	@echo "[\033[0;32mINFO\033[0m] compiling utils..."
+	@$(CC) $(CFLAGS) -c lib/utils.c -o $(OBJ)utils.o
+
+params.o:
+	@echo "[\033[0;32mINFO\033[0m] compiling params..."
+	@$(CC) $(CFLAGS) -c lib/params.c  -o $(OBJ)params.o
 
 clean:
-	@rm -rf *.o changes.txt
+	@rm -rf $(OBJ)*.o ./ipc_res/*.txt
 
 run-one: compile
 	./one.sh
-
 
 run-dense: compile
 	./dense.sh
 
 run-large: compile
 	./large.sh	
-
-test:
-	@$(CC) $(CFLAGS) test.c && ./a.out
-	@rm -rf a.out
-
-path_finder.o:
-	@$(CC) $(CFLAGS) -o path_finder.o path_finder.c astar/astar.c astar/astar_heap.c utils.c -lm
-
-test-astar: 
-	@$(CC) $(CFLAGS) -o path_finder.o path_finder.c astar/astar.c astar/astar_heap.c utils.c -lm
-	./path_finder.o
-
-print-queue:
-	@$(CC) $(CFLAGS) -o print_queue.o print_queue.c utils.c -lm
-	./print_queue.o

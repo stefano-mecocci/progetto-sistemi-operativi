@@ -10,7 +10,6 @@
 #define RESPAWN 3
 #define EXIT_TIMER 2
 
-
 /* Tipo di cella */
 enum cell_type
 {
@@ -57,12 +56,13 @@ typedef struct taxi
   int requests;
 } TaxiStats;
 
-typedef struct node {
+typedef struct node
+{
   TaxiStats taxi_stats;
-  struct node * next;
+  struct node *next;
 } Node;
 
-typedef Node * List;
+typedef Node *List;
 
 /* Represents the current status of the taxi */
 typedef struct taxi_status
@@ -105,13 +105,14 @@ typedef struct taxi_info
   int mtext[sizeof(int) * 3];
 } TaxiInfo;
 
-typedef struct ride {
+typedef struct ride
+{
   int origin;
   int destination;
 } Ride;
 
-
-enum RequestType {
+enum RequestType
+{
   NORMAL = 1,
   FAILED = 2
 };
@@ -136,13 +137,15 @@ typedef struct spawn
   int mtext[2];
 } SpawnMsg;
 
-enum PrintMode {
+enum PrintMode
+{
   ACT_CAPACITY,
   SOURCES,
   TOP_CELLS
 };
 
-typedef struct tuple{
+typedef struct tuple
+{
   int key;
   int value;
 } Tuple;

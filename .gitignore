@@ -4,11 +4,8 @@
 # executables
 *.o
 
-#ipc file id
-*_id
-*_msq
-*sems
-*_sems_*
+# folder for ipc id files
+ipc_res/*
 
 # info files
 *.txt

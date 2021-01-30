@@ -5,7 +5,8 @@
 #include "utils.h"
 #include <errno.h>
 
-List list_add(List p, pid_t pid) {
+List list_add(List p, pid_t pid)
+{
   List new_list;
   new_list = malloc(sizeof(Node));
 
@@ -21,8 +22,10 @@ List list_add(List p, pid_t pid) {
   return new_list;
 }
 
-void list_free(List p) {
-  if (p == NULL) {
+void list_free(List p)
+{
+  if (p == NULL)
+  {
     return;
   }
 
@@ -30,33 +33,42 @@ void list_free(List p) {
   free(p);
 }
 
-void list_increase_taxi_crossed_cells(List p, pid_t pid) {
-  for (; p != NULL; p = p->next) {
-    if (p->taxi_stats.pid == pid) {
+void list_increase_taxi_crossed_cells(List p, pid_t pid)
+{
+  for (; p != NULL; p = p->next)
+  {
+    if (p->taxi_stats.pid == pid)
+    {
       p->taxi_stats.crossed_cells++;
     }
-  } 
+  }
 }
 
-void list_increase_taxi_requests(List p, pid_t pid) {
-  for (; p != NULL; p = p->next) {
-    if (p->taxi_stats.pid == pid) {
+void list_increase_taxi_requests(List p, pid_t pid)
+{
+  for (; p != NULL; p = p->next)
+  {
+    if (p->taxi_stats.pid == pid)
+    {
       p->taxi_stats.requests++;
     }
-  } 
+  }
 }
 
-void list_print(List p) {
+void list_print(List p)
+{
   TaxiStats tmp;
 
-  for (; p != NULL; p = p->next) {
+  for (; p != NULL; p = p->next)
+  {
     tmp = p->taxi_stats;
     printf("[pid=%d, crossed_cells=%d, requests=%d]", tmp.pid, tmp.crossed_cells, tmp.requests);
 
-    if (p->next != NULL) {
+    if (p->next != NULL)
+    {
       printf(" -> ");
     }
   }
 
-  printf(" -> NULL\n"); 
+  printf(" -> NULL\n");
 }

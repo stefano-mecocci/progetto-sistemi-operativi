@@ -6,19 +6,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 /*
  * The following union must be defined as required by the semctl man
  * page
  */
-union semun {
-	int              val;    /* Value for SETVAL */
-	struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
-	unsigned short  *array;  /* Array for GETALL, SETALL */
-	struct seminfo  *__buf;  /* Buffer for IPC_INFO
+union semun
+{
+	int val;			   /* Value for SETVAL */
+	struct semid_ds *buf;  /* Buffer for IPC_STAT, IPC_SET */
+	unsigned short *array; /* Array for GETALL, SETALL */
+	struct seminfo *__buf; /* Buffer for IPC_INFO
 				    (Linux-specific) */
 };
-
 
 /*
  * Set a semaphore to a user defined value
@@ -58,4 +57,4 @@ extern int sem_reserve(int sem_id, int sem_num);
  */
 extern int sem_release(int sem_id, int sem_num);
 
-extern int sem_getall(char * my_string, int sem_id);
+extern int sem_getall(char *my_string, int sem_id);

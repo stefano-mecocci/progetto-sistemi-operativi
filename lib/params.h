@@ -45,4 +45,6 @@
 /* Durata massima della simulazione */
 #define SO_DURATION (atoi(getenv("SO_DURATION")))
 
+extern void check_params();
+
 #endif

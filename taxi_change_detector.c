@@ -1,11 +1,11 @@
 #define _GNU_SOURCE
 
-#include "params.h"
-#include "data_structures.h"
-#include "params.h"
-#include "sem_lib.h"
-#include "utils.h"
-#include "linked_list.h"
+#include "lib/params.h"
+#include "lib/data_structures.h"
+#include "lib/params.h"
+#include "lib/sem_lib.h"
+#include "lib/utils.h"
+#include "lib/linked_list.h"
 
 #include <errno.h>
 #include <signal.h>
@@ -16,9 +16,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#define CHANGES_FILE "changes.txt"
-#define UNSERVED_FILE "unserved.txt"
-#define REPORT_FILE "report.txt"
+#define CHANGES_FILE "./out/changes.txt"
+#define UNSERVED_FILE "./out/unserved.txt"
+#define REPORT_FILE "./out/report.txt"
 
 void update_taxi_availability_list(TaxiActionMsg update);
 void update_taxi_status(enum Bool);
@@ -37,7 +37,7 @@ FILE *unserved_f;
 FILE *report_file;
 
 /* STATISTICHE */
-Tuple *g_top_cells = NULL;                /* posizione celle più attraversate */
+Tuple *g_top_cells = NULL; /* posizione celle più attraversate */
 
 TaxiStats g_most_street = {-1, -1, -1, -1};
 TaxiStats g_longest_travel_time = {-1, -1, -1, -1};
@@ -56,13 +56,15 @@ int g_taxi_info_msq_id;
 int g_requests_msq_id;
 TaxiStatus *g_taxi_status_list;
 
-void init_stats() {
+void init_stats()
+{
   int i;
 
   g_top_cells = malloc(sizeof(Tuple) * SO_TOP_CELLS);
   g_crossed_cells_num = malloc(sizeof(int) * SO_WIDTH * SO_HEIGHT);
 
-  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++) {
+  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
+  {
     g_crossed_cells_num[i] = 0;
   }
 }
@@ -70,10 +72,10 @@ void init_stats() {
 int main(int argc, char const *argv[])
 {
   set_handler();
-  g_city_id = read_id_from_file("city_id");
-  g_city_sems_cap = read_id_from_file("city_sems_cap");
-  g_taxi_info_msq_id = read_id_from_file("taxi_info_msq");
-  g_requests_msq_id = read_id_from_file("requests_msq");
+  g_city_id = read_id_from_file(IPC_CITY_ID_FILE);
+  g_city_sems_cap = read_id_from_file(IPC_CITY_SEMS_CAP_FILE);
+  g_taxi_info_msq_id = read_id_from_file(IPC_TAXI_INFO_MSQ_FILE);
+  g_requests_msq_id = read_id_from_file(IPC_REQUESTS_MSQ_FILE);
   init_stats();
   create_taxi_availability_list();
   changes_f = fopen(CHANGES_FILE, "w+");
@@ -207,7 +209,8 @@ void update_taxi_availability_list(TaxiActionMsg update)
   }
   else if (update.mtype == SERVED)
   {
-    if (update.mtext.longest_travel_time > g_longest_travel_time.longest_travel_time) {
+    if (update.mtext.longest_travel_time > g_longest_travel_time.longest_travel_time)
+    {
       g_longest_travel_time.longest_travel_time = update.mtext.longest_travel_time;
       g_longest_travel_time.pid = update.mtext.pid;
     }
@@ -259,8 +262,7 @@ void write_unserved_to_file(RequestMsg msg)
   fprintf(unserved_f, "origin=%d, destination=%d - %s\n",
           msg.mtext.origin,
           msg.mtext.destination,
-          status
-          );
+          status);
 }
 
 char *get_string_by_bool(enum Bool val)
@@ -310,12 +312,15 @@ void set_handler()
   sigaction(SIGTERM, &act, NULL);
 }
 
-Tuple find_highest_cell() {
-  Tuple res = { -1, -1 };
+Tuple find_highest_cell()
+{
+  Tuple res = {-1, -1};
   int i;
 
-  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++) {
-    if (g_crossed_cells_num[i] > res.value) {
+  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
+  {
+    if (g_crossed_cells_num[i] > res.value)
+    {
       res.key = i;
       res.value = g_crossed_cells_num[i];
     }
@@ -326,18 +331,21 @@ Tuple find_highest_cell() {
   return res;
 }
 
-void calc_top_cells() {
+void calc_top_cells()
+{
   int i = 0;
 
-  for (i = 0; i < SO_TOP_CELLS; i++) {
+  for (i = 0; i < SO_TOP_CELLS; i++)
+  {
     g_top_cells[i] = find_highest_cell();
   }
 }
 
-int get_top_cell_value(int index){
+int get_top_cell_value(int index)
+{
   int i = 0, found = 0;
-  while (found == 0 && i < SO_TOP_CELLS) {
-    /* printf("idx: %d\n", g_top_cells[i].key); */
+  while (found == 0 && i < SO_TOP_CELLS)
+  {
     if (g_top_cells[i].key == index)
     {
       found++;
@@ -363,16 +371,20 @@ void calc_taxi_stats()
 {
   List p = g_taxi_pids;
 
-  while (p != NULL) {
-    if (p->taxi_stats.crossed_cells > g_most_street.crossed_cells) {
+  while (p != NULL)
+  {
+    if (p->taxi_stats.crossed_cells > g_most_street.crossed_cells)
+    {
       copy_taxi_stats(&(p->taxi_stats), &g_most_street);
     }
 
-    if (p->taxi_stats.requests > g_most_requests.requests) {
+    if (p->taxi_stats.requests > g_most_requests.requests)
+    {
       copy_taxi_stats(&(p->taxi_stats), &g_most_requests);
     }
 
-    if (p->taxi_stats.longest_travel_time > g_longest_travel_time.longest_travel_time) {
+    if (p->taxi_stats.longest_travel_time > g_longest_travel_time.longest_travel_time)
+    {
       copy_taxi_stats(&(p->taxi_stats), &g_longest_travel_time);
     }
 
@@ -380,30 +392,34 @@ void calc_taxi_stats()
   }
 }
 
-void calc_stats() {
+void calc_stats()
+{
   calc_top_cells();
   calc_taxi_stats();
 }
 
-void fprint_taxi_time(FILE *report_file, TaxiStats taxi) {
+void fprint_taxi_time(FILE *report_file, TaxiStats taxi)
+{
   fprintf(report_file, "- Pid = %d\n", taxi.pid);
   fprintf(report_file, "- Longest travel = %ldms\n\n", taxi.longest_travel_time);
-
 }
 
-void fprint_taxi_requests(FILE *report_file, TaxiStats taxi) {
+void fprint_taxi_requests(FILE *report_file, TaxiStats taxi)
+{
   fprintf(report_file, "- Pid = %d\n", taxi.pid);
   fprintf(report_file, "- Requests = %d\n\n", taxi.requests);
 }
 
-void fprint_taxi_cells(FILE *report_file, TaxiStats taxi) {
+void fprint_taxi_cells(FILE *report_file, TaxiStats taxi)
+{
   fprintf(report_file, "- Pid = %d\n", taxi.pid);
   fprintf(report_file, "- Crossed cells = %d\n\n", taxi.crossed_cells);
 }
 
 #define SEPARATOR "\n--------------------------------------------------\n"
 
-void write_stats_to_report_file() {
+void write_stats_to_report_file()
+{
   int i;
   Point p;
 
@@ -417,15 +433,16 @@ void write_stats_to_report_file() {
 
   fprintf(report_file, SEPARATOR);
   fprintf(report_file, "Top cells: (x, y) - # \n");
-  for (i = 0; i < SO_TOP_CELLS; i++) {
+  for (i = 0; i < SO_TOP_CELLS; i++)
+  {
     p = index2point(g_top_cells[i].key);
-    fprintf(report_file, "(%d, %d) - %d\n ", p.x, p.y, g_top_cells[i].value);
+    fprintf(report_file, "(%d, %d) - %d\n", p.x, p.y, g_top_cells[i].value);
   }
 
   print_city(report_file, g_city_id, g_city_sems_cap, TOP_CELLS, get_top_cell_value);
 
   fprintf(report_file, SEPARATOR);
-  
+
   fprintf(report_file, "Sources:\n");
   print_city(report_file, g_city_id, g_city_sems_cap, SOURCES, get_top_cell_value);
 
@@ -437,7 +454,6 @@ void write_stats_to_report_file() {
   fprint_taxi_time(report_file, g_longest_travel_time);
   fprintf(report_file, "Taxi who took more requests:\n");
   fprint_taxi_requests(report_file, g_most_requests);
-
 }
 
 /* Signal handler del processo taxi_change_detector */
@@ -454,7 +470,7 @@ void taxi_change_detector_handler(int signum)
 
     calc_stats();
     write_stats_to_report_file();
-    printf("Stats generated in report.txt file\n");
+    printf("Stats generated in %s file\n", REPORT_FILE);
 
     exit(EXIT_SUCCESS);
     break;
