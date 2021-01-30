@@ -16,9 +16,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#define CHANGES_FILE "changes.txt"
-#define UNSERVED_FILE "unserved.txt"
-#define REPORT_FILE "report.txt"
+#define CHANGES_FILE "./out/changes.txt"
+#define UNSERVED_FILE "./out/unserved.txt"
+#define REPORT_FILE "./out/report.txt"
 
 void update_taxi_availability_list(TaxiActionMsg update);
 void update_taxi_status(enum Bool);
@@ -419,7 +419,7 @@ void write_stats_to_report_file() {
   fprintf(report_file, "Top cells: (x, y) - # \n");
   for (i = 0; i < SO_TOP_CELLS; i++) {
     p = index2point(g_top_cells[i].key);
-    fprintf(report_file, "(%d, %d) - %d\n ", p.x, p.y, g_top_cells[i].value);
+    fprintf(report_file, "(%d, %d) - %d\n", p.x, p.y, g_top_cells[i].value);
   }
 
   print_city(report_file, g_city_id, g_city_sems_cap, TOP_CELLS, get_top_cell_value);
@@ -454,7 +454,7 @@ void taxi_change_detector_handler(int signum)
 
     calc_stats();
     write_stats_to_report_file();
-    printf("Stats generated in report.txt file\n");
+    printf("Stats generated in %s file\n", REPORT_FILE);
 
     exit(EXIT_SUCCESS);
     break;

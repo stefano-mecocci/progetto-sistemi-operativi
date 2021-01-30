@@ -20,4 +20,4 @@ export SO_TIMEOUT=1 # default = 1
 
 export SO_DURATION=20 # default = 20
 
-./master.o
+./obj/master.o

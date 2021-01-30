@@ -4,6 +4,7 @@
 #include "data_structures.h"
 #include "params.h"
 #include "utils.h"
+#include "executables.h"
 
 #include <errno.h>
 #include <signal.h>
@@ -215,7 +216,7 @@ void place_city_holes(int city_id)
 void create_taxigen()
 {
   pid_t pid = fork();
-  char *args[2] = {"taxigen.o", NULL};
+  char *args[2] = {TAXIGEN_OBJ, NULL};
   int err;
 
   DEBUG_RAISE_INT(pid);
@@ -276,7 +277,7 @@ void create_sources()
 void start_timer()
 {
   pid_t timer_pid = fork();
-  char *args[2] = {"master_timer.o", NULL};
+  char *args[2] = {MASTER_TIMER_OBJ, NULL};
   int err;
 
   DEBUG_RAISE_INT(timer_pid);
@@ -302,7 +303,7 @@ void start_timer()
 void start_change_detector()
 {
   pid_t change_detector_pid = fork();
-  char *args[2] = {"taxi_change_detector.o", NULL};
+  char *args[2] = {TAXI_CHANGE_DETECTOR_OBJ, NULL};
   int err;
 
   DEBUG_RAISE_INT(change_detector_pid);
@@ -506,7 +507,7 @@ void create_source(int position)
 {
   char position_str[12]; /* twelve are the max digits of an integer */
   sprintf(position_str, "%d", position);
-  char *args[3] = {"source.o", position_str, NULL};
+  char *args[3] = {SOURCE_OBJ, position_str, NULL};
   int err;
 
   err = execve(args[0], args, environ);

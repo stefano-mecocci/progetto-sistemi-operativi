@@ -66,7 +66,7 @@ int read_id_from_file(char *filename)
 /* Stores IPC source id in given filename */
 void write_id_to_file(int id, char *filename)
 {
-  FILE *file = fopen(filename, "w");
+  FILE *file = fopen(filename, "w+");
 
   fprintf(file, "%d", id);
   fclose(file);

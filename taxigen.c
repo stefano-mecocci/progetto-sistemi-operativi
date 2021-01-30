@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 
 #include "taxigen.h"
+#include "executables.h"
 #include "data_structures.h"
 #include "params.h"
 #include "utils.h"
@@ -100,7 +101,7 @@ int set_taxi(int city_id, int city_sems_cap)
 
 pid_t create_taxi(int pos, int is_respawned)
 {
-  char *args[5] = {"taxi.o", NULL, NULL, NULL, NULL};
+  char *args[5] = {TAXI_OBJ, NULL, NULL, NULL, NULL};
   pid_t pid = fork();
   int err;
 
