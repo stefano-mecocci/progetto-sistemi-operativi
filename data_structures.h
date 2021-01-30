@@ -6,7 +6,10 @@
 
 #define SEM_SYNC_TAXI 0
 #define SEM_SYNC_SOURCES 1
-#define SEM_ALIVES_TAXI 2
+#define SPAWN 2
+#define RESPAWN 3
+#define EXIT_TIMER 2
+
 
 /* Tipo di cella */
 enum cell_type
@@ -26,9 +29,7 @@ typedef struct cell
 {
   enum cell_type type;
   int capacity;
-  int act_capacity;
   int cross_time;
-  int crossing_num;
 } Cell;
 
 /* Città = array di lunghezza SO_WIDTH * SO_HEIGHT */
@@ -41,20 +42,27 @@ typedef struct point
   int y;
 } Point;
 
-/* Per comodità */
 enum Bool
 {
   FALSE,
   TRUE
 };
 
-/* Struttura abbinata ad un processo taxi */
+/* ----- Structs per linked list di TaxiStats ----- */
 typedef struct taxi
 {
+  pid_t pid;
   int crossed_cells;
-  int max_travel_time;
+  long longest_travel_time;
   int requests;
 } TaxiStats;
+
+typedef struct node {
+  TaxiStats taxi_stats;
+  struct node * next;
+} Node;
+
+typedef Node * List;
 
 /* Represents the current status of the taxi */
 typedef struct taxi_status
@@ -62,7 +70,7 @@ typedef struct taxi_status
   pid_t pid;
   enum Bool available;
   int position;
-
+  long longest_travel_time;
 } TaxiStatus;
 
 enum TaxiOps
@@ -102,17 +110,20 @@ typedef struct ride {
   int destination;
 } Ride;
 
+
+enum RequestType {
+  NORMAL = 1,
+  FAILED = 2
+};
 /*
 Messaggio di richiesta taxi:
 - mtext indica punti di origine e destinazione [origin, destination] 
 */
 typedef struct request
 {
-  long mtype;
+  long mtype; /* mtype is a value between RequestType enum */
   Ride mtext;
 } RequestMsg;
-
-
 
 /*
 Messaggio di richiesta di spawn (per taxigen):
@@ -125,16 +136,15 @@ typedef struct spawn
   int mtext[2];
 } SpawnMsg;
 
-#define SPAWN 2
-#define RESPAWN 3
+enum PrintMode {
+  ACT_CAPACITY,
+  SOURCES,
+  TOP_CELLS
+};
 
-#define EXIT_TIMER EXIT_SUCCESS
-#define EXIT_ERROR EXIT_FAILURE
-
-typedef struct origin
-{
-  long mtype;
-  int mtext[1];
-} OriginMsg;
+typedef struct tuple{
+  int key;
+  int value;
+} Tuple;
 
 #endif

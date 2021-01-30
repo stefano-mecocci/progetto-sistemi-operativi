@@ -4,10 +4,16 @@
 #include <stdlib.h>
 
 /* Larghezza griglia città */
-#define SO_WIDTH 10
+#define SO_WIDTH 30
 
 /* Altezza griglia città */
-#define SO_HEIGHT 10
+#define SO_HEIGHT 30
+
+/* sec */
+#define PRINT_INTERVAL 1
+
+/* sec */
+#define RIDE_REQUEST_INTERVAL 3
 
 /* Numero di buche nella città */
 #define SO_HOLES (atoi(getenv("SO_HOLES")))

@@ -17,8 +17,6 @@ int g_origin;
 
 int g_requests_msq;
 int g_city_id;
-int g_origin_msq;
-int g_taxi_list_mem_id;
 
 void source_handler(int signum);
 int generate_valid_pos();
@@ -28,40 +26,27 @@ int generate_valid_pos();
 ====================================
 */
 
-int create_origin_msq()
-{
-  int id = msgget(getpid(), 0660 | IPC_CREAT);
-  DEBUG_RAISE_INT(getppid(), id);
-
-  g_origin_msq = id;
-
-  return id;
-}
-
-void init_data(int requests_msq, int city_id, int taxi_list_mem_id)
+void init_data(int requests_msq, int city_id)
 {
   g_origin = -1;
   g_requests_msq = requests_msq;
   g_city_id = city_id;
-  g_taxi_list_mem_id = taxi_list_mem_id;
 }
 
-void set_handler(int g_taxi_list_mem_id)
+void set_handler()
 {
   struct sigaction act;
   bzero(&act, sizeof act);
 
   act.sa_handler = source_handler;
 
-  sigaction(SIGINT, &act, NULL);
   sigaction(SIGTERM, &act, NULL);
-  sigaction(SIGUSR2, &act, NULL);
   sigaction(SIGUSR1, &act, NULL);
 }
 
 int generate_taxi_request(RequestMsg *req)
 {
-  req->mtype = 1;
+  req->mtype = (int)NORMAL;
   req->mtext.origin = g_origin;
   req->mtext.destination = generate_valid_pos();
   return 0;
@@ -73,17 +58,10 @@ void send_taxi_request(RequestMsg *req)
   DEBUG_RAISE_INT(getppid(), err);
 }
 
-void save_source_position(int origin_msq)
+void set_source_position(int position)
 {
-  OriginMsg msg;
-  int err;
-
-  err = msgrcv(origin_msq, &msg, sizeof msg.mtext, 0, 0);
-  DEBUG_RAISE_INT(getppid(), err);
-
-  g_origin = msg.mtext[0];
+  g_origin = position;
 }
-
 /*
 ====================================
   PRIVATE
@@ -98,18 +76,11 @@ void source_handler(int signum)
   switch (signum)
   {
   case SIGTERM:
-    msgctl(g_origin_msq, IPC_RMID, NULL);
-    exit(EXIT_FAILURE);
+    exit(EXIT_SUCCESS);
     break;
 
   case SIGUSR1:
-    generate_taxi_request(&req);
-    send_taxi_request(&req);
-    break;
-
-  case SIGUSR2:
-    msgctl(g_origin_msq, IPC_RMID, NULL);
-    exit(EXIT_SUCCESS);
+    /* Only used to interrupt sleep in main */
     break;
 
   default:
@@ -120,9 +91,8 @@ void source_handler(int signum)
 /* Genera una posizione valida per la destinazione */
 int generate_valid_pos()
 {
-  City city = shmat(g_city_id, NULL, 0);
+  City city = shmat(g_city_id, NULL, SHM_RDONLY);
   int pos = -1, done = FALSE;
-
   while (!done)
   {
     pos = rand_int(0, SO_HEIGHT * SO_WIDTH - 1);
@@ -135,40 +105,4 @@ int generate_valid_pos()
 
   shmdt(city);
   return pos;
-}
-
-/* DEPRECATED(Can't assign taxi during req creation) - Returns the nearest taxi pid to g_origin - needed for ride request */
-pid_t find_nearest_taxi_pid()
-{
-  int min_distance = SO_WIDTH + SO_HEIGHT;
-  int i = 0, err, current_distance;
-  pid_t pid = 0;
-  TaxiStatus taxi;
-  TaxiStatus *taxis = shmat(g_taxi_list_mem_id, NULL, 0);
-
-  while (i < SO_TAXI && min_distance != 0)
-  {
-    taxi = taxis[i];
-
-    current_distance = indexes_delta(taxi.position, g_origin);
-    if (taxi.available == TRUE && current_distance < min_distance)
-    {
-      /* use (dx + dy) to calc taxicab distance - we already have a decent approximation
-      instead of using a* (more precise -> heavier)  */
-      min_distance = current_distance;
-      pid = taxi.pid;
-    }
-
-    i++;
-  }
-
-  shmdt(taxis);
-
-  if (pid == 0)
-  {
-    /* raise error - no available taxi found */
-    return -1;
-  }
-
-  return pid;
 }

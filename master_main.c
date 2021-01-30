@@ -45,12 +45,9 @@ int main() {
   init_city_sems_op(city_sems_op);
   init_city_sems_cap(city_id, city_sems_cap);
 
-  set_sources(city_id, city_sems_op);
   create_sources();
   err = sem_op(sync_sems, SEM_SYNC_SOURCES, 0, 0);
   DEBUG_RAISE_INT(err);
-  send_sources_origins();
-
 
   create_taxigen();
   create_taxis(taxi_spawn_msq);
@@ -62,8 +59,8 @@ int main() {
   start_change_detector();
 
   while (TRUE) {
-    sleep_for(1, 0);
-    print_city(city_id);
+    sleep_for(PRINT_INTERVAL, 0);
+    print_city(stdout, city_id, city_sems_cap, ACT_CAPACITY, NULL);
   }
 
   return 0;

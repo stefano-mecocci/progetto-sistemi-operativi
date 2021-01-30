@@ -10,7 +10,8 @@
 *sems
 *_sems_*
 
-changes.txt
+# info files
+*.txt
 
 # test files
 test.c

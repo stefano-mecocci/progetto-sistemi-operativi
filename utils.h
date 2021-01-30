@@ -1,6 +1,8 @@
 #include "data_structures.h"
 #include <math.h>
+#include <stdio.h>
 
+#define HIT printf("hit\n");
 
 #define DEBUG \
   printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
@@ -29,8 +31,21 @@
     raise(SIGTERM);             \
   }
 
+#define CHECK_FILE(file, name) \
+    if (file == NULL)\
+    {\
+        printf("Error opening file %s!\n", name);\
+        exit(1);\
+    }\
+
+#define NONE_SYMBOL " ."
+#define HOLE_SYMBOL " X"
+#define SOURCE_SYMBOL " S"
+
 /* Returns map point from given index */
 extern Point index2point(int index);
+
+extern int coordinates2index(int x, int y);
 
 /* Returns map index from given point */
 extern int point2index(Point p);
@@ -57,10 +72,15 @@ extern int rand_int(int min, int max);
 /* Enqueues taxi status update */
 extern int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status);
 
-extern enum cell_type get_cell_type(int city_id, int position);
-
-extern int get_cell_crossing_time(int city_id, int position);
-
 extern void block_signal(int signum);
 
 extern void unblock_signal(int signum);
+
+extern long get_milliseconds();
+
+extern void reset_stopwatch();
+
+extern long record_stopwatch();
+
+/* Stampa la città in ASCII */
+extern void print_city(FILE *fd, int city_id, int city_sems_cap, enum PrintMode mode, int (*get_cell_val)(int));

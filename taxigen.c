@@ -14,6 +14,7 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <sys/types.h>
+#include <sys/wait.h> 
 #include <time.h>
 #include <unistd.h>
 
@@ -25,8 +26,8 @@ int g_index;        /* indice di g_taxi_pids */
 
 void taxigen_handler(int signum);
 int find_pid_index(pid_t pid, pid_t arr[]);
-int generate_valid_taxi_pos(City city);
-void prepare_taxi_args(char *args[], int pos, int isNew);
+void prepare_taxi_args(char *args[], int pos, int is_respawned);
+void send_signal_to_taxis(int signal);
 
 /*
 ====================================
@@ -97,24 +98,24 @@ int set_taxi(int city_id, int city_sems_cap)
   return pos;
 }
 
-pid_t create_taxi(int pos, int isNew)
+pid_t create_taxi(int pos, int is_respawned)
 {
   char *args[5] = {"taxi.o", NULL, NULL, NULL, NULL};
   pid_t pid = fork();
   int err;
 
-  DEBUG_RAISE_INT(getppid(), pid);
+  DEBUG_RAISE_INT(getpid(), pid);
 
   if (pid == 0)
   {
-    prepare_taxi_args(args, pos, isNew);
+    prepare_taxi_args(args, pos, is_respawned);
     err = execve(args[0], args, environ);
 
     if (err == -1)
     {
       DEBUG;
       kill(getppid(), SIGTERM);
-      exit(EXIT_ERROR);
+      exit(EXIT_FAILURE);
     }
   }
   else
@@ -146,7 +147,7 @@ void replace_taxi_pid(pid_t old_pid, pid_t new_pid)
 /* Signal handler di taxigen */
 void taxigen_handler(int signum)
 {
-  int i;
+  int i, status, child_pid;
 
   switch (signum)
   {
@@ -159,7 +160,11 @@ void taxigen_handler(int signum)
 
     break;
   case SIGUSR2:
-    send_signal_to_taxis(SIGUSR2);
+    send_signal_to_taxis(SIGTERM);
+
+    while((child_pid = wait(&status)) != -1){
+      /* printf("taxi %d exited with status %d\n", child_pid, WEXITSTATUS(status)); */
+    } 
 
     exit(EXIT_SUCCESS);
     break;
@@ -176,41 +181,26 @@ void taxigen_handler(int signum)
 void send_signal_to_taxis(int signal)
 {
   int i;
-    for (i = 0; g_taxi_pids[i] != 0; i++)
+    for (i = 0; i < TAXIPIDS_SIZE; i++)
     {
-      kill(g_taxi_pids[i], signal);
+      if (g_taxi_pids[i] != 0)
+      {
+        kill(g_taxi_pids[i], signal);
+      }
     }
 }
 
 /* Prepare gli args del processo taxi */
-void prepare_taxi_args(char *args[], int pos, int isNew)
+void prepare_taxi_args(char *args[], int pos, int is_respawned)
 {
   args[1] = malloc(sizeof(char) * 12);
-  sprintf(args[1], "%d", isNew);
+  sprintf(args[1], "%d", is_respawned);
 
   args[2] = malloc(sizeof(char) * 12);
   sprintf(args[2], "%d", getppid());
 
   args[3] = malloc(sizeof(char) * 12);
   sprintf(args[3], "%d", pos);
-}
-
-/* Genera una posizione valida per un taxi */
-int generate_valid_taxi_pos(City city)
-{
-  int pos = -1, done = FALSE;
-
-  while (!done)
-  {
-    pos = rand_int(0, SO_HEIGHT * SO_WIDTH - 1);
-
-    if (city[pos].type != CELL_HOLE && city[pos].act_capacity > 0)
-    {
-      done = TRUE;
-    }
-  }
-
-  return pos;
 }
 
 /* Trova l'indice di un pid salvato in array */

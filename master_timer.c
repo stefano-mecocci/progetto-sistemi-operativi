@@ -3,12 +3,11 @@
 #include <signal.h>
 #include <unistd.h>
 #include <time.h>
+#include <errno.h>
 
 
 int main(int argc, char const *argv[]) {
-  sleep_for(0, 100000000); /* fix temporaneo */
-
-  sleep_for(SO_DURATION, 0);
+  sleep_for(SO_DURATION, 1000); /* add 1 usec for let the master finish to print the map */
   kill(getppid(), SIGUSR2);
 
   return 0;
