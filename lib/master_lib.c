@@ -197,7 +197,7 @@ void place_city_holes(int city_id)
   City city = shmat(city_id, NULL, 0);
   int i = 0, pos = -1;
 
-	srand(time(NULL));
+  srand(time(NULL));
 
   while (i < SO_HOLES)
   {
@@ -337,7 +337,7 @@ Remove IPC objects from memory and free some mallocs addresses
 void clear_memory()
 {
   int err = 0;
-  
+
   err = shmctl(g_city_id, IPC_RMID, NULL);
   DEBUG_RAISE_INT(err);
   err = semctl(g_sync_sems, -1, IPC_RMID);
@@ -418,7 +418,7 @@ void master_handler(int signum)
 
     err = waitpid(g_change_detector_pid, &status, 0);
     DEBUG_RAISE_INT(err);
-    
+
     clear_memory();
     exit(EXIT_SUCCESS);
     break;
@@ -466,7 +466,7 @@ Send signal to existing sources
 void send_signal_to_sources(int signal)
 {
   int i;
-  
+
   for (i = 0; i < SO_SOURCES; i++)
   {
     if (g_source_pids[i] != -1)

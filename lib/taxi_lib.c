@@ -67,9 +67,10 @@ void init_data(int master_pid, int pos)
   g_pos = pos;
 }
 
-void copy_city(){
+void copy_city()
+{
   int i;
-  g_city = malloc(sizeof(Cell)*(SO_WIDTH * SO_HEIGHT));
+  g_city = malloc(sizeof(Cell) * (SO_WIDTH * SO_HEIGHT));
   City city = shmat(g_city_id, NULL, SHM_RDONLY);
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
   {
@@ -133,7 +134,7 @@ void taxi_handler(int signum, siginfo_t *info, void *context)
   case SIGALRM:
     err = send_taxi_update(g_taxi_info_msq, TIMEOUT, status);
     DEBUG_RAISE_INT(err);
-    send_spawn_request(); 
+    send_spawn_request();
     if (g_serving_req == TRUE)
     {
       insert_aborted_request();
@@ -173,10 +174,8 @@ uint8_t get_map_cost(const uint32_t x, const uint32_t y)
   int index = coordinates2index(x, y);
   enum cell_type type = g_city[index].type;
   int capacity = g_city[index].capacity;
-  
-  uint8_t cost = type == CELL_HOLE || capacity == 0 ? 
-    COST_BLOCKED : 
-    SO_CAP_MAX - capacity + 1;
+
+  uint8_t cost = type == CELL_HOLE || capacity == 0 ? COST_BLOCKED : SO_CAP_MAX - capacity + 1;
   return cost;
 }
 
@@ -204,18 +203,19 @@ direction_t *get_path(int position, int destination, int *steps)
   return directions;
 }
 
-void sem_transfer_capacity(int next_addr) {
-    struct sembuf ops[2];
+void sem_transfer_capacity(int next_addr)
+{
+  struct sembuf ops[2];
 
-    ops[0].sem_flg = 0;
-    ops[0].sem_num = next_addr;
-    ops[0].sem_op = -1;
+  ops[0].sem_flg = 0;
+  ops[0].sem_num = next_addr;
+  ops[0].sem_op = -1;
 
-    ops[1].sem_flg = 0;
-    ops[1].sem_num = get_position();
-    ops[1].sem_op = 1;
+  ops[1].sem_flg = 0;
+  ops[1].sem_num = get_position();
+  ops[1].sem_op = 1;
 
-    semop(g_city_sems_cap, ops, 2);
+  semop(g_city_sems_cap, ops, 2);
 }
 
 void travel(direction_t *directions, int steps)
@@ -232,15 +232,6 @@ void travel(direction_t *directions, int steps)
     p.x += astar_get_dx(g_as, *dir);
     p.y += astar_get_dy(g_as, *dir);
     next_addr = point2index(p);
-    /* printf("step %d: from %d (%d, %d) to %d (%d, %d)\n", 
-      i + 1, 
-      get_position(),
-      x, 
-      y,
-      next_addr,
-      p.x, 
-      p.y
-    ); */
     crossing_time = g_city[next_addr].cross_time;
 
     sem_transfer_capacity(next_addr);

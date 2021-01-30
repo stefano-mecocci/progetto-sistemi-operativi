@@ -18,7 +18,8 @@
 #include <time.h>
 #include <unistd.h>
 
-int main() {
+int main()
+{
   int taxi_spawn_msq = read_id_from_file(IPC_TAXI_SPAWN_MSQ_FILE);
   int taxi_info_msq_id = read_id_from_file(IPC_TAXI_INFO_MSQ_FILE);
   int sync_sems = read_id_from_file(IPC_SYNC_SEMS_FILE);
@@ -32,19 +33,24 @@ int main() {
   set_handler();
   init_data();
 
-  while (TRUE) {
+  while (TRUE)
+  {
     receive_spawn_request(taxi_spawn_msq, &req);
 
-    if (req.mtype == RESPAWN) {
+    if (req.mtype == RESPAWN)
+    {
       remove_old_taxi(city_sems_cap, req.mtext[1]);
     }
 
     pos = set_taxi(city_id, city_sems_cap);
 
-    if (req.mtype == RESPAWN) {
+    if (req.mtype == RESPAWN)
+    {
       taxi_pid = create_taxi(pos, TRUE);
       replace_taxi_pid(req.mtext[0], taxi_pid);
-    } else {
+    }
+    else
+    {
       taxi_pid = create_taxi(pos, FALSE);
       add_taxi_pid(taxi_pid);
     }

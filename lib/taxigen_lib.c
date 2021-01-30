@@ -15,7 +15,7 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <sys/types.h>
-#include <sys/wait.h> 
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -138,7 +138,6 @@ void replace_taxi_pid(pid_t old_pid, pid_t new_pid)
   g_taxi_pids[index] = new_pid;
 }
 
-
 /*
 ====================================
   PRIVATE
@@ -163,9 +162,10 @@ void taxigen_handler(int signum)
   case SIGUSR2:
     send_signal_to_taxis(SIGTERM);
 
-    while((child_pid = wait(&status)) != -1){
+    while ((child_pid = wait(&status)) != -1)
+    {
       /* printf("taxi %d exited with status %d\n", child_pid, WEXITSTATUS(status)); */
-    } 
+    }
 
     exit(EXIT_SUCCESS);
     break;
@@ -182,13 +182,13 @@ void taxigen_handler(int signum)
 void send_signal_to_taxis(int signal)
 {
   int i;
-    for (i = 0; i < TAXIPIDS_SIZE; i++)
+  for (i = 0; i < TAXIPIDS_SIZE; i++)
+  {
+    if (g_taxi_pids[i] != 0)
     {
-      if (g_taxi_pids[i] != 0)
-      {
-        kill(g_taxi_pids[i], signal);
-      }
+      kill(g_taxi_pids[i], signal);
     }
+  }
 }
 
 /* Prepare gli args del processo taxi */

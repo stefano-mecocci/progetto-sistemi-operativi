@@ -14,7 +14,8 @@
 
 void print_pid() { printf("\n[MASTER] pid %d\n\n", getpid()); }
 
-int main() {
+int main()
+{
   int err;
   int city_id = create_city();
   int sync_sems = create_sync_sems();
@@ -50,11 +51,12 @@ int main() {
   create_taxis(taxi_spawn_msq);
   err = sem_op(sync_sems, SEM_SYNC_TAXI, 0, 0);
   DEBUG_RAISE_INT(err);
-  
+
   start_timer();
   start_change_detector();
 
-  while (TRUE) {
+  while (TRUE)
+  {
     sleep_for(PRINT_INTERVAL, 0);
     print_city(stdout, city_id, city_sems_cap, ACT_CAPACITY, NULL);
   }

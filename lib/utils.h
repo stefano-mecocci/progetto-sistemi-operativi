@@ -7,36 +7,37 @@
 #define DEBUG \
   printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
 
-#define GET_MACRO(_1,_2,NAME,...) NAME
-#define DEBUG_RAISE_INT(...) GET_MACRO(__VA_ARGS__, DEBUG_RAISE_INT2, DEBUG_RAISE_INT1)(__VA_ARGS__)
+#define GET_MACRO(_1, _2, NAME, ...) NAME
+#define DEBUG_RAISE_INT(...) GET_MACRO(__VA_ARGS__, DEBUG_RAISE_INT2, DEBUG_RAISE_INT1) \
+(__VA_ARGS__)
 
 #define DEBUG_RAISE_INT2(pid, err) \
-  if (err < 0)               \
-  {                          \
-    DEBUG;                   \
-    kill(pid, SIGTERM); \
-    raise(SIGTERM);           \
+  if (err < 0)                     \
+  {                                \
+    DEBUG;                         \
+    kill(pid, SIGTERM);            \
+    raise(SIGTERM);                \
   }
 
 #define DEBUG_RAISE_INT1(err) \
-  if (err < 0)               \
-  {                          \
-    DEBUG;                   \
+  if (err < 0)                \
+  {                           \
+    DEBUG;                    \
     raise(SIGTERM);           \
   }
 #define DEBUG_RAISE_ADDR(addr) \
   if (addr == NULL)            \
   {                            \
     DEBUG;                     \
-    raise(SIGTERM);             \
+    raise(SIGTERM);            \
   }
 
-#define CHECK_FILE(file, name) \
-    if (file == NULL)\
-    {\
-        printf("Error opening file %s!\n", name);\
-        exit(1);\
-    }\
+#define CHECK_FILE(file, name)                \
+  if (file == NULL)                           \
+  {                                           \
+    printf("Error opening file %s!\n", name); \
+    exit(1);                                  \
+  }
 
 #define NONE_SYMBOL " ."
 #define HOLE_SYMBOL " \033[0;31mX\033[0m"
@@ -67,7 +68,7 @@ extern int points_delta(Point, Point);
 extern int read_id_from_file(char *filename);
 
 /* Stores IPC source id in given filename */
-extern  void write_id_to_file(int id, char * filename);
+extern void write_id_to_file(int id, char *filename);
 
 extern int sleep_for(int secs, int nanosecs);
 

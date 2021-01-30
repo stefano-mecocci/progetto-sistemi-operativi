@@ -18,7 +18,8 @@
 
 long g_start;
 
-int coordinates2index(int x, int y){
+int coordinates2index(int x, int y)
+{
   Point p;
   p.x = x;
   p.y = y;
@@ -28,7 +29,7 @@ int coordinates2index(int x, int y){
 /* Conversione indice -> punto */
 Point index2point(int index)
 {
-  Point p; 
+  Point p;
 
   p.x = index % SO_WIDTH;
   p.y = floor((float)index / (float)SO_WIDTH);
@@ -139,7 +140,8 @@ void unblock_signal(int signum)
   sigprocmask(SIG_UNBLOCK, &mask, NULL);
 }
 
-long get_milliseconds() {
+long get_milliseconds()
+{
   struct timeval tv;
 
   gettimeofday(&tv, NULL);
@@ -149,11 +151,13 @@ long get_milliseconds() {
       (long)(tv.tv_usec) / 1000;
 }
 
-void reset_stopwatch() {
+void reset_stopwatch()
+{
   g_start = get_milliseconds();
 }
 
-long record_stopwatch() {
+long record_stopwatch()
+{
   return get_milliseconds() - g_start;
 }
 
@@ -176,17 +180,23 @@ void print_city(FILE *fd, int city_id, int city_sems_cap, enum PrintMode mode, i
     else if (mode == TOP_CELLS)
     {
       val = get_cell_val(i);
-      if(val >= 0){
+      if (val >= 0)
+      {
         fprintf(fd, "%2d", val);
-      } else{
+      }
+      else
+      {
         fprintf(fd, NONE_SYMBOL);
       }
     }
     else if (mode == SOURCES)
     {
-      if(city[i].type == CELL_SOURCE){
+      if (city[i].type == CELL_SOURCE)
+      {
         fprintf(fd, SOURCE_SYMBOL);
-      } else{
+      }
+      else
+      {
         fprintf(fd, NONE_SYMBOL);
       }
     }
