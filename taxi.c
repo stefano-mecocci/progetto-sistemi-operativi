@@ -31,7 +31,7 @@ int main(int argc, char const *argv[]) {
   TaxiStatus status;
   direction_t *path;
   long last_travel_duration;
-  int steps = 0, started = 0;
+  int steps = 0;
   
   init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap, requests_msq);
   init_data(atoi(argv[2]), atoi(argv[3]));
@@ -54,11 +54,6 @@ int main(int argc, char const *argv[]) {
 
     reset_stopwatch();
   
-    if (started == 0)
-    {
-      /* start_timer(); */
-      started++;
-    }
     if(req.mtext.origin != get_position()){
       /* gather path to source */
       path = get_path(get_position(), req.mtext.origin, &steps);
