@@ -40,7 +40,7 @@
 
 #define NONE_SYMBOL " ."
 #define HOLE_SYMBOL " \033[0;31mX\033[0m"
-#define SOURCE_SYMBOL " \033[0;32mS\033[0m"
+#define SOURCE_SYMBOL " \033[0;33mS\033[0m"
 
 /* Returns map point from given index */
 extern Point index2point(int index);
