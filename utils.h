@@ -42,6 +42,13 @@
 #define HOLE_SYMBOL " \033[0;31mX\033[0m"
 #define SOURCE_SYMBOL " \033[0;33mS\033[0m"
 
+#define IPC_CITY_ID_FILE "ipc_res/city_id"
+#define IPC_SYNC_SEMS_FILE "ipc_res/sync_sems"
+#define IPC_CITY_SEMS_CAP_FILE "ipc_res/city_sems_cap"
+#define IPC_REQUESTS_MSQ_FILE "ipc_res/requests_msq"
+#define IPC_TAXI_SPAWN_MSQ_FILE "ipc_res/taxi_spawn_msq"
+#define IPC_TAXI_INFO_MSQ_FILE "ipc_res/taxi_info_msq"
+
 /* Returns map point from given index */
 extern Point index2point(int index);
 

@@ -9,9 +9,9 @@
 
 int main(int argc, char const *argv[]) {
   int err;
-  int sync_sems = read_id_from_file("sync_sems");
-  int requests_msq = read_id_from_file("requests_msq");
-  int city_id = read_id_from_file("city_id");
+  int sync_sems = read_id_from_file(IPC_SYNC_SEMS_FILE);
+  int requests_msq = read_id_from_file(IPC_REQUESTS_MSQ_FILE);
+  int city_id = read_id_from_file(IPC_CITY_ID_FILE);
   int origin = atoi(argv[1]);
   RequestMsg req;
 

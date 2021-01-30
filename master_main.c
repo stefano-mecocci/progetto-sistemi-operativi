@@ -23,12 +23,12 @@ int main() {
   int taxi_info_msq = create_taxi_info_msq();
   int taxi_spawn_msq = create_taxi_spawn_msq();
 
-  write_id_to_file(city_id, "city_id");
-  write_id_to_file(sync_sems, "sync_sems");
-  write_id_to_file(city_sems_cap, "city_sems_cap");
-  write_id_to_file(requests_msq, "requests_msq");
-  write_id_to_file(taxi_spawn_msq, "taxi_spawn_msq");
-  write_id_to_file(taxi_info_msq, "taxi_info_msq");
+  write_id_to_file(city_id, IPC_CITY_ID_FILE);
+  write_id_to_file(sync_sems, IPC_SYNC_SEMS_FILE);
+  write_id_to_file(city_sems_cap, IPC_CITY_SEMS_CAP_FILE);
+  write_id_to_file(requests_msq, IPC_REQUESTS_MSQ_FILE);
+  write_id_to_file(taxi_spawn_msq, IPC_TAXI_SPAWN_MSQ_FILE);
+  write_id_to_file(taxi_info_msq, IPC_TAXI_INFO_MSQ_FILE);
 
   check_params();
   init_data();

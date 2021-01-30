@@ -19,11 +19,11 @@
 #include <unistd.h>
 
 int main() {
-  int taxi_spawn_msq = read_id_from_file("taxi_spawn_msq");
-  int taxi_info_msq_id = read_id_from_file("taxi_info_msq");
-  int sync_sems = read_id_from_file("sync_sems");
-  int city_id = read_id_from_file("city_id");
-  int city_sems_cap = read_id_from_file("city_sems_cap");
+  int taxi_spawn_msq = read_id_from_file(IPC_TAXI_SPAWN_MSQ_FILE);
+  int taxi_info_msq_id = read_id_from_file(IPC_TAXI_INFO_MSQ_FILE);
+  int sync_sems = read_id_from_file(IPC_SYNC_SEMS_FILE);
+  int city_id = read_id_from_file(IPC_CITY_ID_FILE);
+  int city_sems_cap = read_id_from_file(IPC_CITY_SEMS_CAP_FILE);
   int pos, err;
   SpawnMsg req;
   TaxiStatus status;

@@ -70,10 +70,10 @@ void init_stats() {
 int main(int argc, char const *argv[])
 {
   set_handler();
-  g_city_id = read_id_from_file("city_id");
-  g_city_sems_cap = read_id_from_file("city_sems_cap");
-  g_taxi_info_msq_id = read_id_from_file("taxi_info_msq");
-  g_requests_msq_id = read_id_from_file("requests_msq");
+  g_city_id = read_id_from_file(IPC_CITY_ID_FILE);
+  g_city_sems_cap = read_id_from_file(IPC_CITY_SEMS_CAP_FILE);
+  g_taxi_info_msq_id = read_id_from_file(IPC_TAXI_INFO_MSQ_FILE);
+  g_requests_msq_id = read_id_from_file(IPC_REQUESTS_MSQ_FILE);
   init_stats();
   create_taxi_availability_list();
   changes_f = fopen(CHANGES_FILE, "w+");

@@ -16,7 +16,7 @@ void print_queue_taxi_info(int msqid);
 
 int main(int argc, char const *argv[])
 {
-    int taxi_info_msq_id = read_id_from_file("taxi_info_msq");
+    int taxi_info_msq_id = read_id_from_file(IPC_TAXI_INFO_MSQ_FILE);
     print_queue_taxi_info(taxi_info_msq_id);
 
     return 0;

@@ -20,12 +20,12 @@
 
 int main(int argc, char const *argv[]) {
   int err;
-  int taxi_spawn_msq = read_id_from_file("taxi_spawn_msq");
-  int taxi_info_msq = read_id_from_file("taxi_info_msq");
-  int requests_msq = read_id_from_file("requests_msq");
-  int sync_sems = read_id_from_file("sync_sems");
-  int city_sems_cap = read_id_from_file("city_sems_cap");
-  int city_id = read_id_from_file("city_id");
+  int taxi_spawn_msq = read_id_from_file(IPC_TAXI_SPAWN_MSQ_FILE);
+  int taxi_info_msq = read_id_from_file(IPC_TAXI_INFO_MSQ_FILE);
+  int requests_msq = read_id_from_file(IPC_REQUESTS_MSQ_FILE);
+  int sync_sems = read_id_from_file(IPC_SYNC_SEMS_FILE);
+  int city_sems_cap = read_id_from_file(IPC_CITY_SEMS_CAP_FILE);
+  int city_id = read_id_from_file(IPC_CITY_ID_FILE);
   int is_respawned = atoi(argv[1]);
   RequestMsg req;
   TaxiStatus status;
