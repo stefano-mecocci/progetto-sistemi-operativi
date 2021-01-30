@@ -69,7 +69,7 @@ int main(int argc, char const *argv[])
         raise(SIGALRM);
       }
     }
-    printf("START RIDE\n");
+    /* printf("START RIDE\n"); */
     status.available = FALSE;
     status.pid = getpid();
     status.position = get_position();
@@ -83,7 +83,7 @@ int main(int argc, char const *argv[])
       printf("Taxi %d did not reach the correct destination.\n", getpid());
       raise(SIGALRM);
     }
-    printf("END RIDE\n");
+    /* printf("END RIDE\n"); */
     last_travel_duration = record_stopwatch();
     status.available = TRUE;
     status.pid = getpid();
