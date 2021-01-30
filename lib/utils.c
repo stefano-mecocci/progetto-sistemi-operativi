@@ -30,14 +30,14 @@ Point index2point(int index)
 {
   Point p; 
 
-  p.x = index % SO_WIDTH + 1;
-  p.y = floor((float)index / (float)SO_WIDTH) + 1;
+  p.x = index % SO_WIDTH;
+  p.y = floor((float)index / (float)SO_WIDTH);
 
   return p;
 }
 
 /* Conversione punto -> indice */
-int point2index(Point p) { return (SO_WIDTH * (p.y - 1)) + p.x -1; }
+int point2index(Point p) { return (SO_WIDTH * p.y) + p.x; }
 
 /* Returns taxicab distance between map indexes */
 int indexes_delta(int idx1, int idx2)

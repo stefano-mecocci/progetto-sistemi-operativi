@@ -18,7 +18,8 @@
 #include <time.h>
 #include <unistd.h>
 
-int main(int argc, char const *argv[]) {
+int main(int argc, char const *argv[])
+{
   int err;
   int taxi_spawn_msq = read_id_from_file(IPC_TAXI_SPAWN_MSQ_FILE);
   int taxi_info_msq = read_id_from_file(IPC_TAXI_INFO_MSQ_FILE);
@@ -32,13 +33,14 @@ int main(int argc, char const *argv[]) {
   direction_t *path;
   long last_travel_duration;
   int steps = 0, started = 0;
-  
+
   init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap, requests_msq);
   init_data(atoi(argv[2]), atoi(argv[3]));
   set_handler();
   copy_city();
 
-  if (is_respawned == FALSE) {
+  if (is_respawned == FALSE)
+  {
     err = sem_op(sync_sems, SEM_SYNC_TAXI, -1, 0);
     DEBUG_RAISE_INT(err);
   }
@@ -46,24 +48,27 @@ int main(int argc, char const *argv[]) {
   status.longest_travel_time = 0;
   init_astar();
   start_timer();
-  
-  while(TRUE){
+
+  while (TRUE)
+  {
     set_aborted_request(FALSE);
     receive_ride_request(&req);
     set_aborted_request(TRUE);
 
     reset_stopwatch();
-  
+
     if (started == 0)
     {
       /* start_timer(); */
       started++;
     }
-    if(req.mtext.origin != get_position()){
+    if (req.mtext.origin != get_position())
+    {
       /* gather path to source */
       path = get_path(get_position(), req.mtext.origin, &steps);
       travel(path, steps);
-      if(get_position() != req.mtext.origin){
+      if (get_position() != req.mtext.origin)
+      {
         errno = 0;
         printf("Taxi %d did not reach the correct source for pickup.\n", getpid());
         raise(SIGALRM);
@@ -77,13 +82,20 @@ int main(int argc, char const *argv[]) {
     /* gather path to destination */
     path = get_path(get_position(), req.mtext.destination, &steps);
     travel(path, steps);
+    if (get_position() != req.mtext.origin)
+    {
+      errno = 0;
+      printf("Taxi %d did not reach the correct destination.\n", getpid());
+      raise(SIGALRM);
+    }
     printf("END RIDE\n");
     last_travel_duration = record_stopwatch();
     status.available = TRUE;
     status.pid = getpid();
     status.position = get_position();
 
-    if (last_travel_duration > status.longest_travel_time) {
+    if (last_travel_duration > status.longest_travel_time)
+    {
       status.longest_travel_time = last_travel_duration;
     }
 
