@@ -43,6 +43,7 @@ void taxi_handler(int, siginfo_t *, void *);
 void send_spawn_request();
 void print_path(direction_t *directions, int steps);
 void insert_aborted_request();
+void sem_transfer_capacity(int next_addr);
 
 /*
 ====================================
@@ -203,6 +204,20 @@ direction_t *get_path(int position, int destination, int *steps)
   return directions;
 }
 
+void sem_transfer_capacity(int next_addr) {
+    struct sembuf ops[2];
+
+    ops[0].sem_flg = 0;
+    ops[0].sem_num = next_addr;
+    ops[0].sem_op = -1;
+
+    ops[1].sem_flg = 0;
+    ops[1].sem_num = get_position();
+    ops[1].sem_op = 1;
+
+    semop(g_city_sems_cap, ops, 2);
+}
+
 void travel(direction_t *directions, int steps)
 {
   int i, x, y, crossing_time, next_addr;
@@ -228,8 +243,7 @@ void travel(direction_t *directions, int steps)
     ); */
     crossing_time = g_city[next_addr].cross_time;
 
-    sem_reserve(g_city_sems_cap, next_addr);
-    sem_release(g_city_sems_cap, get_position());
+    sem_transfer_capacity(next_addr);
 
     start_timer();
 
