@@ -7,40 +7,48 @@
 #define DEBUG \
   printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
 
-#define GET_MACRO(_1,_2,NAME,...) NAME
-#define DEBUG_RAISE_INT(...) GET_MACRO(__VA_ARGS__, DEBUG_RAISE_INT2, DEBUG_RAISE_INT1)(__VA_ARGS__)
+#define GET_MACRO(_1, _2, NAME, ...) NAME
+#define DEBUG_RAISE_INT(...) GET_MACRO(__VA_ARGS__, DEBUG_RAISE_INT2, DEBUG_RAISE_INT1) \
+(__VA_ARGS__)
 
 #define DEBUG_RAISE_INT2(pid, err) \
-  if (err < 0)               \
-  {                          \
-    DEBUG;                   \
-    kill(pid, SIGTERM); \
-    raise(SIGTERM);           \
+  if (err < 0)                     \
+  {                                \
+    DEBUG;                         \
+    kill(pid, SIGTERM);            \
+    raise(SIGTERM);                \
   }
 
 #define DEBUG_RAISE_INT1(err) \
-  if (err < 0)               \
-  {                          \
-    DEBUG;                   \
+  if (err < 0)                \
+  {                           \
+    DEBUG;                    \
     raise(SIGTERM);           \
   }
 #define DEBUG_RAISE_ADDR(addr) \
   if (addr == NULL)            \
   {                            \
     DEBUG;                     \
-    raise(SIGTERM);             \
+    raise(SIGTERM);            \
   }
 
-#define CHECK_FILE(file, name) \
-    if (file == NULL)\
-    {\
-        printf("Error opening file %s!\n", name);\
-        exit(1);\
-    }\
+#define CHECK_FILE(file, name)                \
+  if (file == NULL)                           \
+  {                                           \
+    printf("Error opening file %s!\n", name); \
+    exit(1);                                  \
+  }
 
 #define NONE_SYMBOL " ."
-#define HOLE_SYMBOL " X"
-#define SOURCE_SYMBOL " S"
+#define HOLE_SYMBOL " \033[0;31mX\033[0m"
+#define SOURCE_SYMBOL " \033[0;33mS\033[0m"
+
+#define IPC_CITY_ID_FILE "./ipc_res/city_id.txt"
+#define IPC_SYNC_SEMS_FILE "./ipc_res/sync_sems.txt"
+#define IPC_CITY_SEMS_CAP_FILE "./ipc_res/city_sems_cap.txt"
+#define IPC_REQUESTS_MSQ_FILE "./ipc_res/requests_msq.txt"
+#define IPC_TAXI_SPAWN_MSQ_FILE "./ipc_res/taxi_spawn_msq.txt"
+#define IPC_TAXI_INFO_MSQ_FILE "./ipc_res/taxi_info_msq.txt"
 
 /* Returns map point from given index */
 extern Point index2point(int index);
@@ -60,7 +68,7 @@ extern int points_delta(Point, Point);
 extern int read_id_from_file(char *filename);
 
 /* Stores IPC source id in given filename */
-extern  void write_id_to_file(int id, char * filename);
+extern void write_id_to_file(int id, char *filename);
 
 extern int sleep_for(int secs, int nanosecs);
 
@@ -82,5 +90,10 @@ extern void reset_stopwatch();
 
 extern long record_stopwatch();
 
-/* Stampa la città in ASCII */
+/*
+Print the city map in ASCII where:
+- empty cells (no taxi) are "."
+- cells with 1+ taxi are numbers "<n>"
+- holes are "x"
+*/
 extern void print_city(FILE *fd, int city_id, int city_sems_cap, enum PrintMode mode, int (*get_cell_val)(int));
