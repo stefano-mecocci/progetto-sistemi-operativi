@@ -9,6 +9,8 @@
 /* Altezza griglia città */
 #define SO_HEIGHT 5
 
+#define GET_HOLE_RATIO(axis) ((int)(axis / 2) + (int)(axis % 2))
+
 /* sec */
 #define PRINT_INTERVAL 1
 
@@ -46,5 +48,7 @@
 #define SO_DURATION (atoi(getenv("SO_DURATION")))
 
 extern void check_params();
+
+extern int get_max_holes();
 
 #endif
