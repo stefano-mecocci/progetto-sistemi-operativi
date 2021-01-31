@@ -247,9 +247,10 @@ void travel(AStar_Node *navigator)
   int i, crossing_time, next_addr;
   TaxiStatus status;
   Point p = index2point(get_position());
-  while (navigator)
+  while (navigator = navigator->NextInSolvedPath)
   {
     next_addr = coordinates2index(navigator->X, navigator->Y);
+    printf("[taxi] actual=%d; next=%d\n", get_position(), next_addr);
 
     crossing_time = g_city[next_addr].cross_time;
 
@@ -266,7 +267,7 @@ void travel(AStar_Node *navigator)
 
     send_taxi_update(g_taxi_info_msq, BASICMOV, status);
 
-    navigator = navigator->NextInSolvedPath;
+    /* navigator = navigator->NextInSolvedPath */;
   }
 }
 

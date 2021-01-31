@@ -57,6 +57,7 @@ int main(int argc, char const *argv[])
 
     reset_stopwatch();
 
+    printf("[taxi] req origin=%d; target=%d\n", req.mtext.origin , req.mtext.destination);
     if (req.mtext.origin != get_position())
     {
       /* gather path to source */
@@ -68,6 +69,7 @@ int main(int argc, char const *argv[])
         printf("Taxi %d did not reach the correct source for pickup.\n", getpid());
         raise(SIGALRM);
       }
+      init_astar();
     }
     /* printf("START RIDE\n"); */
     status.available = FALSE;
