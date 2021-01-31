@@ -57,7 +57,6 @@ int main(int argc, char const *argv[])
 
     reset_stopwatch();
 
-    printf("[taxi] req origin=%d; target=%d\n", req.mtext.origin , req.mtext.destination);
     if (req.mtext.origin != get_position())
     {
       /* gather path to source */

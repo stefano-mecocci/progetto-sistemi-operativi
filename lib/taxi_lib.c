@@ -145,7 +145,7 @@ void taxi_handler(int signum, siginfo_t *info, void *context)
 
     free(g_dataMap);
     free(g_city);
-    
+
     exit(EXIT_TIMER);
 
     break;
@@ -228,6 +228,7 @@ AStar_Node *get_path(int position, int destination)
   if (!Solution)
   {
     printf("No solution was found\n");
+    raise(SIGALRM);
   }
   SolutionNavigator = NULL;
   NextInSolution = Solution;
@@ -237,7 +238,6 @@ AStar_Node *get_path(int position, int destination)
   {
     do
     {
-      /* index = NextInSolution->X + (NextInSolution->Y * MAP_WIDTH); */
       index = coordinates2index(NextInSolution->X, NextInSolution->Y);
 
       NextInSolution->NextInSolvedPath = SolutionNavigator;
@@ -257,7 +257,6 @@ void travel(AStar_Node *navigator)
   while (navigator = navigator->NextInSolvedPath)
   {
     next_addr = coordinates2index(navigator->X, navigator->Y);
-    printf("[taxi] actual=%d; next=%d\n", get_position(), next_addr);
 
     crossing_time = g_city[next_addr].cross_time;
 
