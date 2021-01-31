@@ -39,7 +39,7 @@ pid_t g_master_pid;
 int g_pos;
 
 /* A* stuff */
-NodeDataMap *g_dataMap;
+NodeDataMap *g_dataMap = NULL;
 
 
 void taxi_handler(int, siginfo_t *, void *);
@@ -183,9 +183,9 @@ void send_spawn_request()
 int CustomGetMap( int x, int y )
 {
 	if( x < 0 ||
-	    x >= SO_HEIGHT ||
+	    x >= SO_WIDTH ||
 		 y < 0 ||
-		 y >= SO_WIDTH
+		 y >= SO_HEIGHT
 	  )
 	{
 		return 9;	 
@@ -205,6 +205,10 @@ float CostOfGoal(int X1,int Y1, int X2, int Y2,int (*GetMap)(int,int))
 void init_astar()
 {
   int i;
+  if (g_dataMap != NULL)
+  {
+    free(g_dataMap);
+  }
   g_dataMap = malloc(sizeof(*g_dataMap) * SO_WIDTH * SO_HEIGHT);
 
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
@@ -227,7 +231,7 @@ AStar_Node *get_path(int position, int destination)
   Solution = AStar_Find(SO_WIDTH, SO_HEIGHT, start.x, start.y, end.x, end.y, CustomGetMap, g_dataMap);
   if (!Solution)
   {
-    printf("No solution was found\n");
+    printf("[taxi](%d) No solution was found for start=%d; end=%d\n", getpid(), position, destination);
     raise(SIGALRM);
   }
   SolutionNavigator = NULL;
@@ -272,8 +276,6 @@ void travel(AStar_Node *navigator)
     status.position = get_position();
 
     send_taxi_update(g_taxi_info_msq, BASICMOV, status);
-
-    /* navigator = navigator->NextInSolvedPath */;
   }
 }
 

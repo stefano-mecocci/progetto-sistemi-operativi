@@ -43,10 +43,12 @@ int main(int argc, char const *argv[])
   {
     err = sem_op(sync_sems, SEM_SYNC_TAXI, -1, 0);
     DEBUG_RAISE_INT(err);
+
+    err = sem_op(sync_sems, SEM_SYNC_TAXI, 0, 0);
+    DEBUG_RAISE_INT(err);
   }
 
   status.longest_travel_time = 0;
-  init_astar();
   start_timer();
 
   while (TRUE)
@@ -59,6 +61,7 @@ int main(int argc, char const *argv[])
 
     if (req.mtext.origin != get_position())
     {
+      init_astar();
       /* gather path to source */
       navigator = get_path(get_position(), req.mtext.origin);
       travel(navigator);
@@ -68,8 +71,8 @@ int main(int argc, char const *argv[])
         printf("Taxi %d did not reach the correct source for pickup.\n", getpid());
         raise(SIGALRM);
       }
-      init_astar();
     }
+    init_astar();
     /* printf("START RIDE\n"); */
     status.available = FALSE;
     status.pid = getpid();
