@@ -197,13 +197,29 @@ void init_city_sems_cap(int city_id, int city_sems_cap)
 void place_city_holes(int city_id)
 {
   City city = shmat(city_id, NULL, 0);
-  int i = 0, pos = -1;
+  int i = 0, pos = -1, maximise = 0, ratio;
 
-  srand(time(NULL));
+  ratio = SO_HOLES * 100 / get_max_holes();
+  if (ratio >= 50)
+  {
+    maximise++;
+    pos = -2;
+  }
+  else
+  {
+    srand(time(NULL));
+  }
 
   while (i < SO_HOLES)
   {
-    pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
+    if (maximise)
+    {
+      pos += 2;
+    }
+    else
+    {
+      pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
+    }
 
     if (is_valid_hole_point(index2point(pos), city))
     {
@@ -557,7 +573,7 @@ int is_valid_hole_point(Point p, City city)
 {
   int list[ADJACENT_CELLS_NUM];
   int i, is_valid = TRUE;
-  int pos;
+  int pos, boundaries = 0;
 
   generate_adjacent_list(p, list);
 
@@ -565,13 +581,17 @@ int is_valid_hole_point(Point p, City city)
   {
     pos = list[i]; /* per chiarezza */
 
-    if (pos >= 0 && pos < SO_WIDTH * SO_HEIGHT)
+    if (pos >= 0)
     {
-      is_valid = is_valid && city[pos].type != CELL_HOLE;
+      is_valid &= city[pos].type != CELL_HOLE;
+    }
+    else
+    {
+      boundaries++;
     }
   }
 
-  return is_valid;
+  return is_valid && boundaries < 8;
 }
 
 /*

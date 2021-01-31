@@ -38,7 +38,14 @@ Point index2point(int index)
 }
 
 /* Conversione punto -> indice */
-int point2index(Point p) { return (SO_WIDTH * p.y) + p.x; }
+int point2index(Point p)
+{
+  if (p.x < 0 || p.x >= SO_WIDTH || p.y < 0 || p.y >= SO_HEIGHT)
+  {
+    return -1;
+  }
+  return (SO_WIDTH * p.y) + p.x;
+}
 
 /* Returns taxicab distance between map indexes */
 int indexes_delta(int idx1, int idx2)
