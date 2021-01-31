@@ -46,10 +46,15 @@ int indexes_delta(int idx1, int idx2)
   return points_delta(index2point(idx1), index2point(idx2));
 }
 
+int coordinates_delta(int x0, int y0, int x1, int y1)
+{
+  return abs(x0 - x1) + abs(y0 - y1);
+}
+
 /* Returns taxicab distance between map points */
 int points_delta(Point pt1, Point pt2)
 {
-  return abs(pt1.x - pt2.x) + abs(pt1.y - pt2.y);
+  return coordinates_delta(pt1.x, pt1.y, pt2.x, pt2.y);
 }
 
 /* Returns IPC source id stored in given filename */

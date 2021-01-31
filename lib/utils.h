@@ -65,6 +65,9 @@ extern int point2index(Point p);
 extern int indexes_delta(int, int);
 
 /* Returns taxicab distance between map points */
+extern int coordinates_delta(int x0, int y0, int x1, int y1);
+
+/* Returns taxicab distance between map points */
 extern int points_delta(Point, Point);
 
 /* Returns IPC source id stored in given filename */

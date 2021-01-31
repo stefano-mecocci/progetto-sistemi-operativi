@@ -4,7 +4,7 @@
 #include "lib/params.h"
 #include "lib/taxi_lib.h"
 #include "lib/utils.h"
-#include "lib/astar/astar.h"
+#include "lib/astar/pathfinder.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -30,7 +30,7 @@ int main(int argc, char const *argv[])
   int is_respawned = atoi(argv[1]);
   RequestMsg req;
   TaxiStatus status;
-  direction_t *path;
+  AStar_Node *navigator;
   long last_travel_duration;
   int steps = 0;
 
@@ -60,8 +60,8 @@ int main(int argc, char const *argv[])
     if (req.mtext.origin != get_position())
     {
       /* gather path to source */
-      path = get_path(get_position(), req.mtext.origin, &steps);
-      travel(path, steps);
+      navigator = get_path(get_position(), req.mtext.origin);
+      travel(navigator);
       if (get_position() != req.mtext.origin)
       {
         errno = 0;
@@ -75,8 +75,8 @@ int main(int argc, char const *argv[])
     status.position = get_position();
     send_taxi_update(taxi_info_msq, PICKUP, status);
     /* gather path to destination */
-    path = get_path(get_position(), req.mtext.destination, &steps);
-    travel(path, steps);
+    navigator = get_path(get_position(), req.mtext.destination);
+    travel(navigator);
     if (get_position() != req.mtext.destination)
     {
       errno = 0;

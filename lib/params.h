@@ -4,10 +4,10 @@
 #include <stdlib.h>
 
 /* Larghezza griglia città */
-#define SO_WIDTH 30
+#define SO_WIDTH 5
 
 /* Altezza griglia città */
-#define SO_HEIGHT 30
+#define SO_HEIGHT 5
 
 /* sec */
 #define PRINT_INTERVAL 1
