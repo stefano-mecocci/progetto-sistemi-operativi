@@ -57,6 +57,7 @@ void init_data()
   int i;
 
   g_taxi_pids = malloc(sizeof(pid_t) * TAXIPIDS_SIZE);
+  DEBUG_RAISE_ADDR(g_taxi_pids);
   for (i = 0; i < TAXIPIDS_SIZE; i++)
   {
     g_taxi_pids[i] = 0;
@@ -195,12 +196,15 @@ void send_signal_to_taxis(int signal)
 void prepare_taxi_args(char *args[], int pos, int is_respawned)
 {
   args[1] = malloc(sizeof(char) * 12);
+  DEBUG_RAISE_ADDR(args[1]);
   sprintf(args[1], "%d", is_respawned);
 
   args[2] = malloc(sizeof(char) * 12);
+  DEBUG_RAISE_ADDR(args[2]);
   sprintf(args[2], "%d", getppid());
 
   args[3] = malloc(sizeof(char) * 12);
+  DEBUG_RAISE_ADDR(args[3]);
   sprintf(args[3], "%d", pos);
 }
 

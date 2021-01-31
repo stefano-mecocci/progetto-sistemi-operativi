@@ -4,11 +4,13 @@
 #include "linked_list.h"
 #include "utils.h"
 #include <errno.h>
+#include <signal.h>
 
 List list_add(List p, pid_t pid)
 {
   List new_list;
   new_list = malloc(sizeof(Node));
+  DEBUG_RAISE_ADDR(new_list);
 
   /* Inizializzo l'elemento del nodo */
   new_list->taxi_stats.pid = pid;

@@ -1,7 +1,9 @@
 #include "sem_lib.h"
+#include "utils.h"
 
 #include <errno.h>
 #include <unistd.h>
+#include <signal.h>
 
 #define TEST_ERROR                                 \
 	if (errno)                                     \
@@ -60,6 +62,7 @@ int sem_getall(char *my_string, int sem_id)
 
 	/* Get the values of all semaphores */
 	sem_vals = malloc(sizeof(*sem_vals) * num_sem);
+  	DEBUG_RAISE_ADDR(sem_vals);
 	arg.array = sem_vals;
 	semctl(sem_id, 0, GETALL, arg);
 

@@ -69,7 +69,7 @@ int main(int argc, char const *argv[])
         raise(SIGALRM);
       }
     }
-    printf("START RIDE\n");
+    /* printf("START RIDE\n"); */
     status.available = FALSE;
     status.pid = getpid();
     status.position = get_position();
@@ -77,13 +77,13 @@ int main(int argc, char const *argv[])
     /* gather path to destination */
     path = get_path(get_position(), req.mtext.destination, &steps);
     travel(path, steps);
-    if (get_position() != req.mtext.origin)
+    if (get_position() != req.mtext.destination)
     {
       errno = 0;
       printf("Taxi %d did not reach the correct destination.\n", getpid());
       raise(SIGALRM);
     }
-    printf("END RIDE\n");
+    /* printf("END RIDE\n"); */
     last_travel_duration = record_stopwatch();
     status.available = TRUE;
     status.pid = getpid();

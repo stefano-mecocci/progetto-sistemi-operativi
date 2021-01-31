@@ -71,6 +71,7 @@ void copy_city()
 {
   int i;
   g_city = malloc(sizeof(Cell) * (SO_WIDTH * SO_HEIGHT));
+  DEBUG_RAISE_ADDR(g_city);
   City city = shmat(g_city_id, NULL, SHM_RDONLY);
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
   {

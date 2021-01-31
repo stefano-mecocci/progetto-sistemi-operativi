@@ -124,9 +124,11 @@ void init_data()
   int i;
 
   g_source_pids = malloc(sizeof(pid_t) * SO_SOURCES);
+  DEBUG_RAISE_ADDR(g_source_pids);
   g_taxigen_pid = -1;
   g_change_detector_pid = -1;
   g_sources_positions = malloc(sizeof(int) * SO_SOURCES);
+  DEBUG_RAISE_ADDR(g_sources_positions);
 
   DEBUG_RAISE_ADDR(g_source_pids);
   DEBUG_RAISE_ADDR(g_sources_positions);

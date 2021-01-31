@@ -1,3 +1,6 @@
+#ifndef _UTILS_H
+#define _UTILS_H
+
 #include "data_structures.h"
 #include <math.h>
 #include <stdio.h>
@@ -97,3 +100,5 @@ Print the city map in ASCII where:
 - holes are "x"
 */
 extern void print_city(FILE *fd, int city_id, int city_sems_cap, enum PrintMode mode, int (*get_cell_val)(int));
+
+#endif
