@@ -142,6 +142,10 @@ void taxi_handler(int signum, siginfo_t *info, void *context)
     {
       insert_aborted_request();
     }
+
+    free(g_dataMap);
+    free(g_city);
+    
     exit(EXIT_TIMER);
 
     break;
@@ -153,6 +157,10 @@ void taxi_handler(int signum, siginfo_t *info, void *context)
     {
       insert_aborted_request();
     }
+
+    free(g_dataMap);
+    free(g_city);
+
     exit(EXIT_SUCCESS);
     break;
   }
@@ -206,7 +214,6 @@ void init_astar()
     g_dataMap[i].CameFrom = NULL;
   }
 }
-
 
 AStar_Node *get_path(int position, int destination)
 {
