@@ -21,3 +21,5 @@ Il progetto è organizzato nelle seguenti cartelle:
 |`make run-dense`               | Compila ed esegue la configurazione 'dense' |
 |`make run-large`               | Compila ed esegue la configurazione 'large' |
 |`make run-one`                 | Compila ed esegue la configurazione 'one'   |
+
+Alternativamente, la simulazione può essere lanciata manualmente (dopo aver compilato) eseguendo i shell script `dense.sh`, `large.sh` o `one.sh`. 
