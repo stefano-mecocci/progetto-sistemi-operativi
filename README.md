@@ -23,3 +23,20 @@ Il progetto è organizzato nelle seguenti cartelle:
 |`make run-one`                 | Compila ed esegue la configurazione 'one'   |
 
 Alternativamente, la simulazione può essere lanciata manualmente (dopo aver compilato) eseguendo i shell script `dense.sh`, `large.sh` o `one.sh`. 
+
+## Configurazione
+Parametri configurati con variabili d'ambiente:
+- `SO_HOLES`
+- `SO_TOP_CELLS`
+- `SO_SOURCES`
+- `SO_CAP_MIN`
+- `SO_CAP_MAX`
+- `SO_TAXI`
+- `SO_TIMENSEC_MIN`
+- `SO_TIMENSEC_MAX`
+- `SO_TIMEOUT`
+- `SO_DURATION`
+
+Parametri hardcoded (`./lib/params.h`):
+- `SO_WIDTH` 
+- `SO_HEIGHT` 

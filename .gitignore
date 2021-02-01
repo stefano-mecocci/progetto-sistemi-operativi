@@ -14,5 +14,5 @@ ipc_res/*
 test.c
 
 # Markdown files
-*.md
-!README.md
+# *.md
+# !README.md
