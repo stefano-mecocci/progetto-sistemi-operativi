@@ -40,3 +40,5 @@ Parametri configurati con variabili d'ambiente:
 Parametri hardcoded (`./lib/params.h`):
 - `SO_WIDTH` 
 - `SO_HEIGHT` 
+- `PRINT_INTERVAL`
+- `RIDE_REQUEST_INTERVAL`
