@@ -1,9 +1,9 @@
-# The taxicab game
-## Progetto per il corso di Sistemi Operativi UniTO 2020/2021
+# Progetto per il corso di Sistemi Operativi UniTO 2020/2021
 Simulation of concurrent processes execution represented by taxi, serving customers around the city
 
 ## Struttura del progetto
 Il progetto è organizzato nelle seguenti cartelle:
+
 - `./` : contiene i file .c che hanno un main e descrivono il workflow di ogni processo;
 - `./lib` : contiene tutti gli headers con le rispettive implementazioni delle estensioni dei processi nella root (librerie);
 - `./obj` : cartella contenente i file oggetto risultanti dalla compilazione;
@@ -26,6 +26,7 @@ Alternativamente, la simulazione può essere lanciata manualmente (dopo aver com
 
 ## Configurazione
 Parametri configurati con variabili d'ambiente:
+
 - `SO_HOLES`
 - `SO_TOP_CELLS`
 - `SO_SOURCES`
@@ -38,6 +39,7 @@ Parametri configurati con variabili d'ambiente:
 - `SO_DURATION`
 
 Parametri hardcoded (`./lib/params.h`):
+
 - `SO_WIDTH` 
 - `SO_HEIGHT` 
 - `PRINT_INTERVAL`

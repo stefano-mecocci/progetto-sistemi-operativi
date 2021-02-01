@@ -1,3 +1,5 @@
+#!/bin/bash
+
 ipcrm -a
 
 export SO_HOLES=10
