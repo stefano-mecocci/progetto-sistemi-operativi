@@ -3,7 +3,6 @@
 #include "lib/params.h"
 #include "lib/data_structures.h"
 #include "lib/params.h"
-#include "lib/sem_lib.h"
 #include "lib/utils.h"
 #include "lib/linked_list.h"
 

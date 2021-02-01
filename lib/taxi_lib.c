@@ -4,7 +4,6 @@
 #include "data_structures.h"
 #include "params.h"
 #include "utils.h"
-#include "sem_lib.h"
 
 #include <errno.h>
 #include <signal.h>
