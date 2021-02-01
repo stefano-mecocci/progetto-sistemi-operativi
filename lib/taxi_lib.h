@@ -3,7 +3,7 @@
 
 #include <sys/types.h>
 #include "data_structures.h"
-#include "astar/astar.h"
+#include "astar/pathfinder.h"
 
 /* Imposta il signal handler di taxi */
 extern void set_handler();
@@ -34,9 +34,9 @@ extern void set_aborted_request(enum Bool);
 
 extern void init_astar();
 
-extern direction_t *get_path(int position, int destination, int *steps);
+extern AStar_Node *get_path(int position, int destination);
 
-extern void travel(direction_t *directions, int steps);
+extern void travel(AStar_Node *navigator);
 
 extern void record();
 

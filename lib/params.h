@@ -4,10 +4,10 @@
 #include <stdlib.h>
 
 /* Larghezza griglia città */
-#define SO_WIDTH 5
+#define SO_WIDTH 20
 
 /* Altezza griglia città */
-#define SO_HEIGHT 5
+#define SO_HEIGHT 10
 
 #define GET_HOLE_RATIO(axis) ((int)(axis / 2) + (int)(axis % 2))
 

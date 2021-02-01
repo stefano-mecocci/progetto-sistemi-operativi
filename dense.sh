@@ -10,7 +10,7 @@ export SO_CAP_MIN=1
 
 export SO_CAP_MAX=1
 
-export SO_TAXI=5 # default = 95 (SO_SOURCES / 2)
+export SO_TAXI=95 # default = 95 (SO_SOURCES / 2)
 
 export SO_TIMENSEC_MIN=100000000
 

@@ -4,7 +4,7 @@
 #include "lib/params.h"
 #include "lib/taxi_lib.h"
 #include "lib/utils.h"
-#include "lib/astar/astar.h"
+#include "lib/astar/pathfinder.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -28,14 +28,16 @@ int main(int argc, char const *argv[])
   int city_sems_cap = read_id_from_file(IPC_CITY_SEMS_CAP_FILE);
   int city_id = read_id_from_file(IPC_CITY_ID_FILE);
   int is_respawned = atoi(argv[1]);
+  int master_pid = atoi(argv[2]);
+  int position = atoi(argv[3]);
   RequestMsg req;
   TaxiStatus status;
-  direction_t *path;
+  AStar_Node *navigator;
   long last_travel_duration;
   int steps = 0;
 
   init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap, requests_msq);
-  init_data(atoi(argv[2]), atoi(argv[3]));
+  init_data(master_pid, position);
   set_handler();
   copy_city();
 
@@ -43,10 +45,13 @@ int main(int argc, char const *argv[])
   {
     err = sem_op(sync_sems, SEM_SYNC_TAXI, -1, 0);
     DEBUG_RAISE_INT(err);
+
+    /* wait that all taxi are created */
+    err = sem_op(sync_sems, SEM_SYNC_TAXI, 0, 0);
+    DEBUG_RAISE_INT(err);
   }
 
   status.longest_travel_time = 0;
-  init_astar();
   start_timer();
 
   while (TRUE)
@@ -59,9 +64,10 @@ int main(int argc, char const *argv[])
 
     if (req.mtext.origin != get_position())
     {
+      init_astar();
       /* gather path to source */
-      path = get_path(get_position(), req.mtext.origin, &steps);
-      travel(path, steps);
+      navigator = get_path(get_position(), req.mtext.origin);
+      travel(navigator);
       if (get_position() != req.mtext.origin)
       {
         errno = 0;
@@ -69,14 +75,15 @@ int main(int argc, char const *argv[])
         raise(SIGALRM);
       }
     }
+    init_astar();
     /* printf("START RIDE\n"); */
     status.available = FALSE;
     status.pid = getpid();
     status.position = get_position();
     send_taxi_update(taxi_info_msq, PICKUP, status);
     /* gather path to destination */
-    path = get_path(get_position(), req.mtext.destination, &steps);
-    travel(path, steps);
+    navigator = get_path(get_position(), req.mtext.destination);
+    travel(navigator);
     if (get_position() != req.mtext.destination)
     {
       errno = 0;
