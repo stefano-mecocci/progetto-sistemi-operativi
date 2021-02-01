@@ -28,6 +28,8 @@ int main(int argc, char const *argv[])
   int city_sems_cap = read_id_from_file(IPC_CITY_SEMS_CAP_FILE);
   int city_id = read_id_from_file(IPC_CITY_ID_FILE);
   int is_respawned = atoi(argv[1]);
+  int master_pid = atoi(argv[2]);
+  int position = atoi(argv[3]);
   RequestMsg req;
   TaxiStatus status;
   AStar_Node *navigator;
@@ -35,7 +37,7 @@ int main(int argc, char const *argv[])
   int steps = 0;
 
   init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap, requests_msq);
-  init_data(atoi(argv[2]), atoi(argv[3]));
+  init_data(master_pid, position);
   set_handler();
   copy_city();
 
@@ -44,6 +46,7 @@ int main(int argc, char const *argv[])
     err = sem_op(sync_sems, SEM_SYNC_TAXI, -1, 0);
     DEBUG_RAISE_INT(err);
 
+    /* wait that all taxi are created */
     err = sem_op(sync_sems, SEM_SYNC_TAXI, 0, 0);
     DEBUG_RAISE_INT(err);
   }

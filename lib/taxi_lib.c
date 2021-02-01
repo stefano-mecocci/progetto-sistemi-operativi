@@ -101,10 +101,16 @@ void start_timer()
 
 void receive_ride_request(RequestMsg *req)
 {
+  TaxiStatus status;
   int err;
   err = msgrcv(g_requests_msq, req, sizeof req->mtext, FAILED, MSG_EXCEPT);
   DEBUG_RAISE_INT(g_master_pid, err);
   g_last_request = req;
+
+  status.available = FALSE;
+  status.pid = getpid();
+  status.position = get_position();
+  send_taxi_update(g_taxi_info_msq, DEQUEUE, status);
 }
 
 void set_handler()
@@ -157,7 +163,6 @@ void taxi_handler(int signum, siginfo_t *info, void *context)
     {
       insert_aborted_request();
     }
-
     free(g_dataMap);
     free(g_city);
 
