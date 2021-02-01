@@ -10,3 +10,13 @@ Il progetto è organizzato nelle seguenti cartelle:
 - `./ipc` : contiene i file di testo in cui vengono salvati gli id delle risorse ipc condivise;
 - `./assets` : contiene immagini e diagrammi che descrivono l'architettura e il flow della soluzione;
 - `./*.sh` : shell scripts che configurano le variabili di ambiente e avviano la simulazione nelle diverse modalità (dense, large, ecc);
+
+## Compilazione e avvio
+
+|command                        |action
+|-------------------------------|---------------------------------------------|
+|`make`                         | Compila il progetto                         |
+|`make clean`                   | Rimuove i file oggetto                      |
+|`make run-dense`               | Compila ed esegue la configurazione 'dense' |
+|`make run-large`               | Compila ed esegue la configurazione 'large' |
+|`make run-one`                 | Compila ed esegue la configurazione 'one'   |
