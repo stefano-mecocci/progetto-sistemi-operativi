@@ -2,9 +2,9 @@
 
 ipcrm -a
 
-export SO_HOLES=20
+export SO_HOLES=9
 
-export SO_TOP_CELLS=40
+export SO_TOP_CELLS=4
 
 export SO_SOURCES=1 # default = 190 (SO_WIDTH * SO_HEIGHT - SO_HOLES)
 
@@ -20,6 +20,6 @@ export SO_TIMENSEC_MAX=300000000
 
 export SO_TIMEOUT=1 # default = 1
 
-export SO_DURATION=4 # default = 20
+export SO_DURATION=10 # default = 20
 
 ./obj/master.o

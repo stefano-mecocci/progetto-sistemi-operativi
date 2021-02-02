@@ -4,8 +4,6 @@
 #include "data_structures.h"
 #include "params.h"
 #include "utils.h"
-#include "sem_lib.h"
-#include "astar/astar.h"
 
 #include <errno.h>
 #include <signal.h>
@@ -20,10 +18,9 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include "astar/pathfinder.h"
 
 #define TAXIPIDS_SIZE (SO_TAXI + 1)
-
-clockid_t g_stopwatch;
 
 int g_taxi_spawn_msq;
 int g_taxi_info_msq;
@@ -37,11 +34,14 @@ enum Bool g_serving_req = FALSE;
 RequestMsg *g_last_request;
 pid_t g_master_pid;
 int g_pos;
-astar_t *g_as;
+
+/* A* stuff */
+NodeDataMap *g_dataMap = NULL;
+
+int set_taxi(int city_id, int city_sems_cap);
 
 void taxi_handler(int, siginfo_t *, void *);
 void send_spawn_request();
-void print_path(direction_t *directions, int steps);
 void insert_aborted_request();
 void sem_transfer_capacity(int next_addr);
 
@@ -70,9 +70,10 @@ void init_data(int master_pid, int pos)
 void copy_city()
 {
   int i;
+  City city;
   g_city = malloc(sizeof(Cell) * (SO_WIDTH * SO_HEIGHT));
   DEBUG_RAISE_ADDR(g_city);
-  City city = shmat(g_city_id, NULL, SHM_RDONLY);
+  city = shmat(g_city_id, NULL, SHM_RDONLY);
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
   {
     g_city[i].type = city[i].type;
@@ -99,10 +100,16 @@ void start_timer()
 
 void receive_ride_request(RequestMsg *req)
 {
+  TaxiStatus status;
   int err;
   err = msgrcv(g_requests_msq, req, sizeof req->mtext, FAILED, MSG_EXCEPT);
-  DEBUG_RAISE_INT(g_master_pid, err);
+  DEBUG_RAISE_INT2(g_master_pid, err);
   g_last_request = req;
+
+  status.available = FALSE;
+  status.pid = getpid();
+  status.position = get_position();
+  send_taxi_update(g_taxi_info_msq, DEQUEUE, status);
 }
 
 void set_handler()
@@ -111,7 +118,7 @@ void set_handler()
   bzero(&act, sizeof act);
 
   act.sa_sigaction = taxi_handler;
-  act.sa_flags = SA_NODEFER | SA_SIGINFO;
+  act.sa_flags = /* SA_NODEFER | */ SA_SIGINFO;
 
   sigaction(SIGALRM, &act, NULL);
   sigaction(SIGTERM, &act, NULL);
@@ -125,7 +132,7 @@ void set_handler()
 
 void taxi_handler(int signum, siginfo_t *info, void *context)
 {
-  int i, err, timer_status;
+  int i, err, timer_status, semval;
   TaxiStatus status;
   status.pid = getpid();
   status.position = g_pos;
@@ -135,11 +142,16 @@ void taxi_handler(int signum, siginfo_t *info, void *context)
   case SIGALRM:
     err = send_taxi_update(g_taxi_info_msq, TIMEOUT, status);
     DEBUG_RAISE_INT(err);
+
     send_spawn_request();
     if (g_serving_req == TRUE)
     {
       insert_aborted_request();
     }
+
+    free(g_dataMap);
+    free(g_city);
+
     exit(EXIT_TIMER);
 
     break;
@@ -151,9 +163,32 @@ void taxi_handler(int signum, siginfo_t *info, void *context)
     {
       insert_aborted_request();
     }
+    free(g_dataMap);
+    free(g_city);
+
     exit(EXIT_SUCCESS);
     break;
   }
+}
+
+int set_taxi(int city_id, int city_sems_cap)
+{
+  City city = shmat(city_id, NULL, 0);
+  int pos;
+
+  while (TRUE)
+  {
+    pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
+
+    if (city[pos].type != CELL_HOLE &&
+        (sem_op(city_sems_cap, pos, -1, IPC_NOWAIT | SEM_UNDO) == 0))
+    {
+      break;
+    }
+  }
+
+  shmdt(city);
+  return pos;
 }
 
 /* Invia una richiesta di spawn a taxigen */
@@ -163,83 +198,101 @@ void send_spawn_request()
   int err;
 
   req.mtype = RESPAWN;
-  req.mtext[0] = getpid();
-  req.mtext[1] = g_pos;
+  req.mtext = getpid();
 
   err = msgsnd(g_taxi_spawn_msq, &req, sizeof req.mtext, 0);
-  DEBUG_RAISE_INT(g_master_pid, err);
+  DEBUG_RAISE_INT2(g_master_pid, err);
 }
 
-uint8_t get_map_cost(const uint32_t x, const uint32_t y)
+int CustomGetMap(int x, int y)
 {
-  int index = coordinates2index(x, y);
-  enum cell_type type = g_city[index].type;
-  int capacity = g_city[index].capacity;
+  int index;
+  enum cell_type type;
+  if (x < 0 ||
+      x >= SO_WIDTH ||
+      y < 0 ||
+      y >= SO_HEIGHT)
+  {
+    return 9;
+  }
 
-  uint8_t cost = type == CELL_HOLE || capacity == 0 ? COST_BLOCKED : SO_CAP_MAX - capacity + 1;
-  return cost;
+  index = coordinates2index(x, y);
+  type = g_city[index].type;
+
+  return type == CELL_HOLE ? 9 : 1;
+}
+
+float CostOfGoal(int X1, int Y1, int X2, int Y2, int (*GetMap)(int, int))
+{
+  return sqrt((float)((X2 - X1) * (X2 - X1)) + ((Y2 - Y1) * (Y2 - Y1)));
 }
 
 void init_astar()
 {
-  /* Allocate the A* context. */
-  g_as = astar_new(SO_WIDTH, SO_HEIGHT, get_map_cost, NULL);
-  astar_set_origin(g_as, 0, 0);
-  astar_set_movement_mode(g_as, DIR_CARDINAL);
+  int i;
+  if (g_dataMap != NULL)
+  {
+    free(g_dataMap);
+  }
+  g_dataMap = malloc(sizeof(*g_dataMap) * SO_WIDTH * SO_HEIGHT);
+
+  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
+  {
+    g_dataMap[i].GScore = 0.0;
+    g_dataMap[i].FScore = 0.0;
+    g_dataMap[i].CameFrom = NULL;
+  }
 }
 
-direction_t *get_path(int position, int destination, int *steps)
+AStar_Node *get_path(int position, int destination)
 {
-  direction_t *directions;
+  AStar_Node *Solution;
+  AStar_Node *NextInSolution;
+  AStar_Node *SolutionNavigator;
   Point start = index2point(position);
   Point end = index2point(destination);
+  int index;
 
-  /* Look for a route. */
-  int result = astar_run(g_as, start.x, start.y, end.x, end.y);
-  if (astar_have_route(g_as))
+  Solution = AStar_Find(SO_WIDTH, SO_HEIGHT, start.x, start.y, end.x, end.y, CustomGetMap, g_dataMap);
+  if (!Solution)
   {
-    *steps = astar_get_directions(g_as, &directions);
-    DEBUG_RAISE_INT(result);
+    printf("[taxi](%d) No solution was found for start=%d; end=%d\n", getpid(), position, destination);
+    raise(SIGALRM);
   }
-  return directions;
+  SolutionNavigator = NULL;
+  NextInSolution = Solution;
+
+  /* Reverse the solution */
+  if (NextInSolution)
+  {
+    do
+    {
+      index = coordinates2index(NextInSolution->X, NextInSolution->Y);
+
+      NextInSolution->NextInSolvedPath = SolutionNavigator;
+      SolutionNavigator = NextInSolution;
+      NextInSolution = g_dataMap[index].CameFrom;
+    } while ((SolutionNavigator->X != start.x) || (SolutionNavigator->Y != start.y));
+  }
+  return SolutionNavigator;
 }
 
-void sem_transfer_capacity(int next_addr)
+void travel(AStar_Node *navigator)
 {
-  struct sembuf ops[2];
-
-  ops[0].sem_flg = 0;
-  ops[0].sem_num = next_addr;
-  ops[0].sem_op = -1;
-
-  ops[1].sem_flg = 0;
-  ops[1].sem_num = get_position();
-  ops[1].sem_op = 1;
-
-  semop(g_city_sems_cap, ops, 2);
-}
-
-void travel(direction_t *directions, int steps)
-{
-  int i, x, y, crossing_time, next_addr;
+  int i, crossing_time, next_addr;
   TaxiStatus status;
   Point p = index2point(get_position());
-  direction_t *dir = directions;
-  for (i = 0; i < steps; i++, dir++)
+  while (navigator = navigator->NextInSolvedPath)
   {
-    x = p.x;
-    y = p.y;
-    /* Get the next (x, y) co-ordinates of the map. */
-    p.x += astar_get_dx(g_as, *dir);
-    p.y += astar_get_dy(g_as, *dir);
-    next_addr = point2index(p);
+    next_addr = coordinates2index(navigator->X, navigator->Y);
+
     crossing_time = g_city[next_addr].cross_time;
 
     sem_transfer_capacity(next_addr);
+    set_position(next_addr);
 
     start_timer();
 
-    set_position(next_addr);
     sleep_for(0, crossing_time);
 
     status.available = FALSE;
@@ -248,32 +301,23 @@ void travel(direction_t *directions, int steps)
 
     send_taxi_update(g_taxi_info_msq, BASICMOV, status);
   }
-
-  astar_free_directions(directions);
 }
 
-void print_path(direction_t *directions, int steps)
+void sem_transfer_capacity(int next_addr)
 {
-  int i, x, y, crossing_time, next_addr;
-  TaxiStatus status;
-  Point p = index2point(get_position());
-  for (i = 0; i < steps; i++, directions++)
-  {
-    x = p.x;
-    y = p.y;
-    /* Get the next (x, y) co-ordinates of the map. */
-    p.x += astar_get_dx(g_as, *directions);
-    p.y += astar_get_dy(g_as, *directions);
-    next_addr = point2index(p);
-    printf("step %d: %d -> %d ; (%d, %d) -> (%d, %d)\n",
-           i + 1,
-           get_position(),
-           next_addr,
-           x,
-           y,
-           p.x,
-           p.y);
-  }
+  int err;
+  struct sembuf ops[2];
+
+  ops[0].sem_flg = SEM_UNDO;
+  ops[0].sem_num = next_addr;
+  ops[0].sem_op = -1;
+
+  ops[1].sem_flg = SEM_UNDO;
+  ops[1].sem_num = get_position();
+  ops[1].sem_op = 1;
+
+  err = semop(g_city_sems_cap, ops, 2);
+  DEBUG_RAISE_INT(err);
 }
 
 void set_aborted_request(enum Bool serving)
@@ -283,13 +327,14 @@ void set_aborted_request(enum Bool serving)
 
 void insert_aborted_request()
 {
+  int err;
   RequestMsg req;
   if (g_last_request != NULL)
   {
     req.mtype = (int)FAILED;
     req.mtext.origin = g_last_request->mtext.origin;
     req.mtext.destination = g_last_request->mtext.destination;
-    int err = msgsnd(g_requests_msq, &req, sizeof(Ride), 0);
-    DEBUG_RAISE_INT(getppid(), err);
+    err = msgsnd(g_requests_msq, &req, sizeof(Ride), 0);
+    DEBUG_RAISE_INT2(getppid(), err);
   }
 }

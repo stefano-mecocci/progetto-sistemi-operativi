@@ -1,5 +1,4 @@
 # Progetto per il corso di Sistemi Operativi UniTO 2020/2021
-Simulation of concurrent processes execution represented by taxi, serving customers around the city
 
 ## Struttura del progetto
 Il progetto è organizzato nelle seguenti cartelle:
@@ -9,7 +8,6 @@ Il progetto è organizzato nelle seguenti cartelle:
 - `./obj` : cartella contenente i file oggetto risultanti dalla compilazione;
 - `./out` : cartella contenente i file di log e il report della simulazione;
 - `./ipc` : contiene i file di testo in cui vengono salvati gli id delle risorse ipc condivise;
-- `./assets` : contiene immagini e diagrammi che descrivono l'architettura e il flow della soluzione;
 - `./*.sh` : shell scripts che configurano le variabili di ambiente e avviano la simulazione nelle diverse modalità (dense, large, ecc);
 
 ## Compilazione e avvio

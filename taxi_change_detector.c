@@ -3,7 +3,6 @@
 #include "lib/params.h"
 #include "lib/data_structures.h"
 #include "lib/params.h"
-#include "lib/sem_lib.h"
 #include "lib/utils.h"
 #include "lib/linked_list.h"
 
@@ -16,8 +15,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#define CHANGES_FILE "./out/changes.txt"
-#define UNSERVED_FILE "./out/unserved.txt"
+#define CHANGES_FILE "./out/changes.log"
+#define UNSERVED_FILE "./out/unserved.log"
 #define REPORT_FILE "./out/report.txt"
 
 void update_taxi_availability_list(TaxiActionMsg update);
@@ -56,21 +55,6 @@ int g_taxi_info_msq_id;
 int g_requests_msq_id;
 TaxiStatus *g_taxi_status_list;
 
-void init_stats()
-{
-  int i;
-
-  g_top_cells = malloc(sizeof(Tuple) * SO_TOP_CELLS);
-  DEBUG_RAISE_ADDR(g_top_cells);
-  g_crossed_cells_num = malloc(sizeof(int) * SO_WIDTH * SO_HEIGHT);
-  DEBUG_RAISE_ADDR(g_crossed_cells_num);
-
-  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
-  {
-    g_crossed_cells_num[i] = 0;
-  }
-}
-
 int main(int argc, char const *argv[])
 {
   set_handler();
@@ -89,6 +73,21 @@ int main(int argc, char const *argv[])
 
   atexit(close_files);
   return 0;
+}
+
+void init_stats()
+{
+  int i;
+
+  g_top_cells = malloc(sizeof(Tuple) * SO_TOP_CELLS);
+  DEBUG_RAISE_ADDR(g_top_cells);
+  g_crossed_cells_num = malloc(sizeof(int) * SO_WIDTH * SO_HEIGHT);
+  DEBUG_RAISE_ADDR(g_crossed_cells_num);
+
+  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
+  {
+    g_crossed_cells_num[i] = 0;
+  }
 }
 
 void close_files()
@@ -198,9 +197,13 @@ void update_taxi_availability_list(TaxiActionMsg update)
     g_taxi_status_list[index].position = update.mtext.position;
     g_taxi_pids = list_add(g_taxi_pids, update.mtext.pid);
   }
-  else if (update.mtype == PICKUP)
+  else if (update.mtype == DEQUEUE)
   {
     list_increase_taxi_requests(g_taxi_pids, update.mtext.pid);
+    g_taxi_status_list[index].available = FALSE;
+  }
+  else if (update.mtype == PICKUP)
+  {
     g_taxi_status_list[index].available = FALSE;
   }
   else if (update.mtype == BASICMOV)
@@ -281,26 +284,38 @@ char *get_string_by_bool(enum Bool val)
 
 char *get_status_by_id(long op)
 {
-  switch (op)
+  if (op == SPAWNED)
   {
-  case 1:
     return "SPAWNED";
-    break;
-  case 2:
+  }
+  else if (op == DEQUEUE)
+  {
+    return "DEQUEUE";
+  }
+  else if (op == PICKUP)
+  {
     return "PICKUP";
-    break;
-  case 3:
+  }
+  else if (op == BASICMOV)
+  {
     return "BASICMOV";
-    break;
-  case 4:
+  }
+  else if (op == SERVED)
+  {
     return "SERVED";
-    break;
-  case 5:
+  }
+  else if (op == TIMEOUT)
+  {
     return "TIMEOUT";
-    break;
-  case 6:
+  }
+  else if (op == ABORTED)
+  {
     return "ABORTED";
-    break;
+  }
+  else
+  {
+    /* taxi operation out of known range */
+    return "INVALID STATUS";
   }
 }
 
@@ -469,7 +484,6 @@ void taxi_change_detector_handler(int signum)
   case SIGTERM: /* Interrupts the simulation - politely ask a program to terminate - can be blocked, handled, and ignored */
     update_taxi_status(TRUE);
     collect_unserved_requests();
-
     calc_stats();
     write_stats_to_report_file();
     printf("Stats generated in %s file\n", REPORT_FILE);

@@ -3,7 +3,7 @@
 
 #include <sys/types.h>
 #include "data_structures.h"
-#include "astar/astar.h"
+#include "astar/pathfinder.h"
 
 /* Imposta il signal handler di taxi */
 extern void set_handler();
@@ -13,6 +13,9 @@ extern void init_data_ipc(int taxi_spawn_msq, int taxi_info_msq, int sync_sems, 
 
 /* Inizializza altri dati globali */
 extern void init_data(int master_pid, int pos);
+
+/* Find the first random free spot on map for first positioning */
+extern int set_taxi(int city_id, int city_sems_cap);
 
 extern void copy_city();
 
@@ -34,9 +37,9 @@ extern void set_aborted_request(enum Bool);
 
 extern void init_astar();
 
-extern direction_t *get_path(int position, int destination, int *steps);
+extern AStar_Node *get_path(int position, int destination);
 
-extern void travel(direction_t *directions, int steps);
+extern void travel(AStar_Node *navigator);
 
 extern void record();
 

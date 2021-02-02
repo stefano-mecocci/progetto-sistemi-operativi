@@ -38,7 +38,14 @@ Point index2point(int index)
 }
 
 /* Conversione punto -> indice */
-int point2index(Point p) { return (SO_WIDTH * p.y) + p.x; }
+int point2index(Point p)
+{
+  if (p.x < 0 || p.x >= SO_WIDTH || p.y < 0 || p.y >= SO_HEIGHT)
+  {
+    return -1;
+  }
+  return (SO_WIDTH * p.y) + p.x;
+}
 
 /* Returns taxicab distance between map indexes */
 int indexes_delta(int idx1, int idx2)
@@ -46,10 +53,15 @@ int indexes_delta(int idx1, int idx2)
   return points_delta(index2point(idx1), index2point(idx2));
 }
 
+int coordinates_delta(int x0, int y0, int x1, int y1)
+{
+  return abs(x0 - x1) + abs(y0 - y1);
+}
+
 /* Returns taxicab distance between map points */
 int points_delta(Point pt1, Point pt2)
 {
-  return abs(pt1.x - pt2.x) + abs(pt1.y - pt2.y);
+  return coordinates_delta(pt1.x, pt1.y, pt2.x, pt2.y);
 }
 
 /* Returns IPC source id stored in given filename */
@@ -143,10 +155,11 @@ void unblock_signal(int signum)
 long get_milliseconds()
 {
   struct timeval tv;
+  long millisecondsSinceEpoch;
 
   gettimeofday(&tv, NULL);
 
-  long millisecondsSinceEpoch =
+  millisecondsSinceEpoch =
       (long)(tv.tv_sec) * 1000 +
       (long)(tv.tv_usec) / 1000;
 }

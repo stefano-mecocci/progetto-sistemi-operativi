@@ -25,7 +25,7 @@ int main()
   int sync_sems = read_id_from_file(IPC_SYNC_SEMS_FILE);
   int city_id = read_id_from_file(IPC_CITY_ID_FILE);
   int city_sems_cap = read_id_from_file(IPC_CITY_SEMS_CAP_FILE);
-  int pos, err;
+  int err;
   SpawnMsg req;
   TaxiStatus status;
   pid_t taxi_pid;
@@ -39,27 +39,14 @@ int main()
 
     if (req.mtype == RESPAWN)
     {
-      remove_old_taxi(city_sems_cap, req.mtext[1]);
-    }
-
-    pos = set_taxi(city_id, city_sems_cap);
-
-    if (req.mtype == RESPAWN)
-    {
-      taxi_pid = create_taxi(pos, TRUE);
-      replace_taxi_pid(req.mtext[0], taxi_pid);
+      taxi_pid = create_taxi(TRUE);
+      replace_taxi_pid(req.mtext, taxi_pid);
     }
     else
     {
-      taxi_pid = create_taxi(pos, FALSE);
+      taxi_pid = create_taxi(FALSE);
       add_taxi_pid(taxi_pid);
     }
-
-    status.pid = taxi_pid;
-    status.available = TRUE;
-    status.position = pos;
-    err = send_taxi_update(taxi_info_msq_id, SPAWNED, status);
-    DEBUG_RAISE_INT(err);
   }
 
   return 0;

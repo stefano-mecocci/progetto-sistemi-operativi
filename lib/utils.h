@@ -10,10 +10,6 @@
 #define DEBUG \
   printf("ERRNO: %d at line %d in file %s\n", errno, __LINE__, __FILE__);
 
-#define GET_MACRO(_1, _2, NAME, ...) NAME
-#define DEBUG_RAISE_INT(...) GET_MACRO(__VA_ARGS__, DEBUG_RAISE_INT2, DEBUG_RAISE_INT1) \
-(__VA_ARGS__)
-
 #define DEBUG_RAISE_INT2(pid, err) \
   if (err < 0)                     \
   {                                \
@@ -22,7 +18,7 @@
     raise(SIGTERM);                \
   }
 
-#define DEBUG_RAISE_INT1(err) \
+#define DEBUG_RAISE_INT(err) \
   if (err < 0)                \
   {                           \
     DEBUG;                    \
@@ -63,6 +59,9 @@ extern int point2index(Point p);
 
 /* Returns taxicab distance between map indexes */
 extern int indexes_delta(int, int);
+
+/* Returns taxicab distance between map points */
+extern int coordinates_delta(int x0, int y0, int x1, int y1);
 
 /* Returns taxicab distance between map points */
 extern int points_delta(Point, Point);

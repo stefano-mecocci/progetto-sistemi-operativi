@@ -76,11 +76,12 @@ typedef struct taxi_status
 enum TaxiOps
 {
   SPAWNED = 1,
-  PICKUP = 2,
-  BASICMOV = 3,
-  SERVED = 4,
-  TIMEOUT = 5,
-  ABORTED = 6
+  DEQUEUE = 2,
+  PICKUP = 3,
+  BASICMOV = 4,
+  SERVED = 5,
+  TIMEOUT = 6,
+  ABORTED = 7
 };
 
 /*
@@ -134,7 +135,7 @@ Messaggio di richiesta di spawn (per taxigen):
 typedef struct spawn
 {
   long mtype;
-  int mtext[2];
+  int mtext;
 } SpawnMsg;
 
 enum PrintMode
