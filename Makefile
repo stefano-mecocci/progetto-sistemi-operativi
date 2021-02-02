@@ -35,7 +35,7 @@ params.o:
 	@$(CC) $(CFLAGS) -c lib/params.c  -o $(OBJ)params.o
 
 clean:
-	@rm -rf $(OBJ)*.o ./ipc_res/*.txt
+	@rm -rf $(OBJ)*.o ./ipc_res/* ./out/*
 
 run-one: compile
 	./one.sh

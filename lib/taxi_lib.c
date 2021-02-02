@@ -21,7 +21,6 @@
 #include "astar/pathfinder.h"
 
 #define TAXIPIDS_SIZE (SO_TAXI + 1)
-
 clockid_t g_stopwatch;
 
 int g_taxi_spawn_msq;
@@ -40,6 +39,7 @@ int g_pos;
 /* A* stuff */
 NodeDataMap *g_dataMap = NULL;
 
+int set_taxi(int city_id, int city_sems_cap);
 
 void taxi_handler(int, siginfo_t *, void *);
 void send_spawn_request();
@@ -118,7 +118,7 @@ void set_handler()
   bzero(&act, sizeof act);
 
   act.sa_sigaction = taxi_handler;
-  act.sa_flags = SA_NODEFER | SA_SIGINFO;
+  act.sa_flags = /* SA_NODEFER | */ SA_SIGINFO;
 
   sigaction(SIGALRM, &act, NULL);
   sigaction(SIGTERM, &act, NULL);
@@ -132,7 +132,7 @@ void set_handler()
 
 void taxi_handler(int signum, siginfo_t *info, void *context)
 {
-  int i, err, timer_status;
+  int i, err, timer_status, semval;
   TaxiStatus status;
   status.pid = getpid();
   status.position = g_pos;
@@ -142,6 +142,7 @@ void taxi_handler(int signum, siginfo_t *info, void *context)
   case SIGALRM:
     err = send_taxi_update(g_taxi_info_msq, TIMEOUT, status);
     DEBUG_RAISE_INT(err);
+
     send_spawn_request();
     if (g_serving_req == TRUE)
     {
@@ -170,6 +171,26 @@ void taxi_handler(int signum, siginfo_t *info, void *context)
   }
 }
 
+int set_taxi(int city_id, int city_sems_cap)
+{
+  City city = shmat(city_id, NULL, 0);
+  int pos;
+
+  while (TRUE)
+  {
+    pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
+
+    if (city[pos].type != CELL_HOLE &&
+        (sem_op(city_sems_cap, pos, -1, IPC_NOWAIT | SEM_UNDO) == 0))
+    {
+      break;
+    }
+  }
+
+  shmdt(city);
+  return pos;
+}
+
 /* Invia una richiesta di spawn a taxigen */
 void send_spawn_request()
 {
@@ -178,7 +199,6 @@ void send_spawn_request()
 
   req.mtype = RESPAWN;
   req.mtext[0] = getpid();
-  req.mtext[1] = g_pos;
 
   err = msgsnd(g_taxi_spawn_msq, &req, sizeof req.mtext, 0);
   DEBUG_RAISE_INT(g_master_pid, err);
@@ -269,10 +289,10 @@ void travel(AStar_Node *navigator)
     crossing_time = g_city[next_addr].cross_time;
 
     sem_transfer_capacity(next_addr);
+    set_position(next_addr);
 
     start_timer();
 
-    set_position(next_addr);
     sleep_for(0, crossing_time);
 
     status.available = FALSE;
@@ -285,17 +305,19 @@ void travel(AStar_Node *navigator)
 
 void sem_transfer_capacity(int next_addr)
 {
+  int err;
   struct sembuf ops[2];
 
-  ops[0].sem_flg = 0;
+  ops[0].sem_flg = SEM_UNDO;
   ops[0].sem_num = next_addr;
   ops[0].sem_op = -1;
 
-  ops[1].sem_flg = 0;
+  ops[1].sem_flg = SEM_UNDO;
   ops[1].sem_num = get_position();
   ops[1].sem_op = 1;
 
-  semop(g_city_sems_cap, ops, 2);
+  err = semop(g_city_sems_cap, ops, 2);
+  DEBUG_RAISE_INT(err);
 }
 
 void set_aborted_request(enum Bool serving)

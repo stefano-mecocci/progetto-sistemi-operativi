@@ -27,7 +27,6 @@ int g_index;        /* indice di g_taxi_pids */
 
 void taxigen_handler(int signum);
 int find_pid_index(pid_t pid, pid_t arr[]);
-void prepare_taxi_args(char *args[], int pos, int is_respawned);
 void send_signal_to_taxis(int signal);
 
 /*
@@ -73,36 +72,9 @@ void receive_spawn_request(int taxi_spawn_msq, SpawnMsg *req)
   DEBUG_RAISE_INT(getppid(), err);
 }
 
-void remove_old_taxi(int city_sems_cap, int pos)
+pid_t create_taxi(int is_respawned)
 {
-  int err;
-  err = sem_op(city_sems_cap, pos, 1, 0);
-  DEBUG_RAISE_INT(getppid(), err);
-}
-
-int set_taxi(int city_id, int city_sems_cap)
-{
-  City city = shmat(city_id, NULL, 0);
-  int pos;
-
-  while (TRUE)
-  {
-    pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
-
-    if (city[pos].type != CELL_HOLE &&
-        (sem_op(city_sems_cap, pos, -1, IPC_NOWAIT) == 0))
-    {
-      break;
-    }
-  }
-
-  shmdt(city);
-  return pos;
-}
-
-pid_t create_taxi(int pos, int is_respawned)
-{
-  char *args[5] = {TAXI_OBJ, NULL, NULL, NULL, NULL};
+  char *args[4] = {TAXI_OBJ, NULL, NULL, NULL};
   pid_t pid = fork();
   int err;
 
@@ -110,7 +82,14 @@ pid_t create_taxi(int pos, int is_respawned)
 
   if (pid == 0)
   {
-    prepare_taxi_args(args, pos, is_respawned);
+    args[1] = malloc(sizeof(char) * 12);
+    DEBUG_RAISE_ADDR(args[1]);
+    sprintf(args[1], "%d", is_respawned);
+
+    args[2] = malloc(sizeof(char) * 12);
+    DEBUG_RAISE_ADDR(args[2]);
+    sprintf(args[2], "%d", getppid());
+
     err = execve(args[0], args, environ);
 
     if (err == -1)
@@ -190,22 +169,6 @@ void send_signal_to_taxis(int signal)
       kill(g_taxi_pids[i], signal);
     }
   }
-}
-
-/* Prepare gli args del processo taxi */
-void prepare_taxi_args(char *args[], int pos, int is_respawned)
-{
-  args[1] = malloc(sizeof(char) * 12);
-  DEBUG_RAISE_ADDR(args[1]);
-  sprintf(args[1], "%d", is_respawned);
-
-  args[2] = malloc(sizeof(char) * 12);
-  DEBUG_RAISE_ADDR(args[2]);
-  sprintf(args[2], "%d", getppid());
-
-  args[3] = malloc(sizeof(char) * 12);
-  DEBUG_RAISE_ADDR(args[3]);
-  sprintf(args[3], "%d", pos);
 }
 
 /* Trova l'indice di un pid salvato in array */
