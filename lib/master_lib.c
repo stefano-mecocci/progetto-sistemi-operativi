@@ -572,7 +572,7 @@ Check that p is a valid point for an hole
 int is_valid_hole_point(Point p, City city)
 {
   int list[ADJACENT_CELLS_NUM];
-  int i, is_valid = TRUE;
+  int i, is_valid = city[point2index(p)].type != CELL_HOLE;
   int pos, boundaries = 0;
 
   generate_adjacent_list(p, list);

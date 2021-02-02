@@ -29,14 +29,22 @@ int main(int argc, char const *argv[])
   int city_id = read_id_from_file(IPC_CITY_ID_FILE);
   int is_respawned = atoi(argv[1]);
   int master_pid = atoi(argv[2]);
-  int position = atoi(argv[3]);
+  int position = -1;
   RequestMsg req;
   TaxiStatus status;
   AStar_Node *navigator;
   long last_travel_duration;
-  int steps = 0;
 
   init_data_ipc(taxi_spawn_msq, taxi_info_msq, sync_sems, city_id, city_sems_cap, requests_msq);
+
+  srand(time(NULL) ^ getpid());
+
+  position = set_taxi(city_id, city_sems_cap);
+  status.available = TRUE;
+  status.pid = getpid();
+  status.position = position;
+  send_taxi_update(taxi_info_msq, SPAWNED, status);
+
   init_data(master_pid, position);
   set_handler();
   copy_city();
