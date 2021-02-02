@@ -1,8 +1,9 @@
-#include <stdio.h>
 #include "data_structures.h"
-#include <stdlib.h>
 #include "linked_list.h"
 #include "utils.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <signal.h>
 
@@ -12,13 +13,13 @@ List list_add(List p, pid_t pid)
   new_list = malloc(sizeof(Node));
   DEBUG_RAISE_ADDR(new_list);
 
-  /* Inizializzo l'elemento del nodo */
+  /* Initialize the "elem" */
   new_list->taxi_stats.pid = pid;
   new_list->taxi_stats.crossed_cells = 0;
   new_list->taxi_stats.longest_travel_time = 0;
   new_list->taxi_stats.requests = 0;
 
-  /* Imposto il puntatore dopo */
+  /* Link the new elem to list */
   new_list->next = p;
 
   return new_list;

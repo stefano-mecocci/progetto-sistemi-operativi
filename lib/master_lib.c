@@ -32,7 +32,7 @@ int g_taxi_spawn_msq;
 
 pid_t *g_source_pids;
 pid_t g_taxigen_pid;
-pid_t g_mastertimer_pid;
+pid_t g_master_timer_pid;
 pid_t g_change_detector_pid;
 
 int *g_sources_positions;
@@ -70,7 +70,7 @@ int create_city()
 
 int create_sync_sems()
 {
-  int nsems = 2;
+  int nsems = 2; /* see data_structures.h */
   int id = semget(IPC_PRIVATE, nsems, 0660 | IPC_CREAT);
   g_sync_sems = id;
 
@@ -130,9 +130,6 @@ void init_data()
   g_sources_positions = malloc(sizeof(int) * SO_SOURCES);
   DEBUG_RAISE_ADDR(g_sources_positions);
 
-  DEBUG_RAISE_ADDR(g_source_pids);
-  DEBUG_RAISE_ADDR(g_sources_positions);
-
   for (i = 0; i < SO_SOURCES; i++)
   {
     g_source_pids[i] = -1;
@@ -170,11 +167,10 @@ void init_city_cells(int city_id)
 
 void init_sync_sems(int sync_sems)
 {
-  int err = 0;
+  int err = semctl(sync_sems, SEM_SYNC_TAXI, SETVAL, SO_TAXI);
+  DEBUG_RAISE_INT(err);
 
-  err += semctl(sync_sems, SEM_SYNC_TAXI, SETVAL, SO_TAXI);
-  err += semctl(sync_sems, SEM_SYNC_SOURCES, SETVAL, SO_SOURCES);
-
+  err = semctl(sync_sems, SEM_SYNC_SOURCES, SETVAL, SO_SOURCES);
   DEBUG_RAISE_INT(err);
 }
 
@@ -194,6 +190,7 @@ void init_city_sems_cap(int city_id, int city_sems_cap)
   shmdt(city);
 }
 
+/* REFACTORING: da rivedere con Samuele */
 void place_city_holes(int city_id)
 {
   City city = shmat(city_id, NULL, 0);
@@ -238,6 +235,7 @@ void create_taxigen()
   int err;
 
   DEBUG_RAISE_INT(pid);
+
   if (pid == 0)
   {
     err = execve(args[0], args, environ);
@@ -247,9 +245,9 @@ void create_taxigen()
       DEBUG;
       raise(SIGTERM);
     }
+  } else {
+    g_taxigen_pid = pid;
   }
-
-  g_taxigen_pid = pid;
 }
 
 void create_taxis(int taxi_spawn_msq)
@@ -260,7 +258,7 @@ void create_taxis(int taxi_spawn_msq)
   for (i = 0; i < SO_TAXI; i++)
   {
     req.mtype = SPAWN;
-    req.mtext = -1;
+    req.mtext = -1; /* not re-spawned, so no pid to replace in taxigen */
 
     err = msgsnd(taxi_spawn_msq, &req, sizeof req.mtext, 0);
     DEBUG_RAISE_INT(err);
@@ -313,7 +311,7 @@ void start_timer()
   else
   {
 
-    g_mastertimer_pid = timer_pid;
+    g_master_timer_pid = timer_pid;
   }
 }
 
@@ -377,7 +375,7 @@ Master signal handler (see set_handler())
 */
 void master_handler(int signum)
 {
-  int i, err, status;
+  int err, status;
   char selection;
 
   switch (signum)
@@ -388,10 +386,11 @@ void master_handler(int signum)
     send_signal_to_mastertimer(SIGSTOP);
     send_signal_to_sources(SIGSTOP);
 
-    sleep_for(1, 0);
+    sleep_for(0, 500000000);
     fflush(stdout);
     fflush(stderr);
-    printf("Press q to quit or any key to continue.\n");
+
+    printf("\nPress q to quit or any key to continue.\n");
     scanf("%c", &selection);
     if (selection != 'q')
     {
@@ -427,12 +426,10 @@ void master_handler(int signum)
   case SIGUSR2: /* Interrupts the simulation - gracefully */
     send_signal_to_taxigen(SIGUSR2);
     send_signal_to_sources(SIGTERM);
-
     err = waitpid(g_taxigen_pid, &status, 0);
     DEBUG_RAISE_INT(err);
 
     send_signal_to_change_detector(SIGTERM);
-
     err = waitpid(g_change_detector_pid, &status, 0);
     DEBUG_RAISE_INT(err);
 
@@ -471,9 +468,9 @@ Send signal to master timer if exists
 */
 void send_signal_to_mastertimer(int signal)
 {
-  if (g_mastertimer_pid != -1)
+  if (g_master_timer_pid != -1)
   {
-    kill(g_mastertimer_pid, signal);
+    kill(g_master_timer_pid, signal);
   }
 }
 
@@ -499,19 +496,18 @@ Generate a valid origin point for source on city
 int generate_origin_point(int city_id)
 {
   City city = shmat(city_id, NULL, 0);
-  int pos = -1, done = FALSE;
+  int pos = -1;
 
-  while (!done)
+  while (TRUE)
   {
     pos = rand_int(0, SO_WIDTH * SO_HEIGHT - 1);
 
     if (city[pos].type == CELL_NORMAL)
     {
-      done = TRUE;
+      city[pos].type = CELL_SOURCE;
+      break;
     }
   }
-
-  city[pos].type = CELL_SOURCE;
 
   shmdt(city);
   return pos;
@@ -539,7 +535,7 @@ void create_source(int position)
 }
 
 /*
-Generate a list of point near p
+Generate a list of points (as indexes) near p
 x x x
 x . x
 x x x
@@ -591,7 +587,7 @@ int is_valid_hole_point(Point p, City city)
     }
   }
 
-  return is_valid && boundaries < 8;
+  return is_valid && boundaries < ADJACENT_CELLS_NUM;
 }
 
 /*

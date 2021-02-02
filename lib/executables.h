@@ -1,5 +1,9 @@
-#ifndef _EXECUTBLES_H
-#define _EXECUTBLES_H
+#ifndef _EXECUTABLES_H
+#define _EXECUTABLES_H
+
+/*
+Paths of the processes executables, for execve usage
+*/
 
 #define SOURCE_OBJ "./obj/source.o"
 #define MASTER_TIMER_OBJ "./obj/master_timer.o"

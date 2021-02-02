@@ -5,9 +5,10 @@
 void check_params()
 {
   int max_holes =  get_max_holes();
+
   if (SO_SOURCES > (SO_WIDTH * SO_HEIGHT - SO_HOLES))
   {
-    printf("Errore: troppe sorgenti, città troppo piccola\n");
+    printf("Errore: troppe sorgenti o città troppo piccola\n");
     raise(SIGTERM);
   }
 
@@ -36,6 +37,7 @@ void check_params()
   }
 }
 
+/* Get the max number of holes you can place in the city */
 int get_max_holes()
 {
   return GET_HOLE_RATIO(SO_WIDTH) * GET_HOLE_RATIO(SO_HEIGHT);

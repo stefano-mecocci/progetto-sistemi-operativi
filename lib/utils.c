@@ -26,7 +26,6 @@ int coordinates2index(int x, int y)
   return point2index(p);
 }
 
-/* Conversione indice -> punto */
 Point index2point(int index)
 {
   Point p;
@@ -37,7 +36,6 @@ Point index2point(int index)
   return p;
 }
 
-/* Conversione punto -> indice */
 int point2index(Point p)
 {
   if (p.x < 0 || p.x >= SO_WIDTH || p.y < 0 || p.y >= SO_HEIGHT)
@@ -45,12 +43,6 @@ int point2index(Point p)
     return -1;
   }
   return (SO_WIDTH * p.y) + p.x;
-}
-
-/* Returns taxicab distance between map indexes */
-int indexes_delta(int idx1, int idx2)
-{
-  return points_delta(index2point(idx1), index2point(idx2));
 }
 
 int coordinates_delta(int x0, int y0, int x1, int y1)
@@ -98,7 +90,6 @@ int sleep_for(int secs, int nanosecs)
   return err;
 }
 
-/* Un wrapper di semop - Proporre di rimuoverlo e sostituirlo con macro per gain access/release */
 int sem_op(int sem_arr, int sem, int value, short flag)
 {
   struct sembuf op[1];
@@ -129,39 +120,19 @@ int rand_int(int min, int max)
 int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status)
 {
   TaxiActionMsg msg;
-  int err;
-
   msg.mtype = op;
   msg.mtext = status;
+
   return msgsnd(queue_id, &msg, sizeof(TaxiStatus), 0);
-}
-
-void block_signal(int signum)
-{
-  sigset_t mask;
-  sigemptyset(&mask);
-  sigaddset(&mask, signum);
-  sigprocmask(SIG_BLOCK, &mask, NULL);
-}
-
-void unblock_signal(int signum)
-{
-  sigset_t mask;
-  sigemptyset(&mask);
-  sigaddset(&mask, signum);
-  sigprocmask(SIG_UNBLOCK, &mask, NULL);
 }
 
 long get_milliseconds()
 {
   struct timeval tv;
-  long millisecondsSinceEpoch;
 
   gettimeofday(&tv, NULL);
 
-  millisecondsSinceEpoch =
-      (long)(tv.tv_sec) * 1000 +
-      (long)(tv.tv_usec) / 1000;
+  return ((long)(tv.tv_sec) * 1000 + (long)(tv.tv_usec) / 1000);
 }
 
 void reset_stopwatch()
