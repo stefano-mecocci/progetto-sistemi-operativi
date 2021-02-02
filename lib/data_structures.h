@@ -81,7 +81,7 @@ enum TaxiOps
   BASICMOV = 4,
   SERVED = 5,
   TIMEOUT = 6,
-  ABORTED = 7,
+  ABORTED = 7
 };
 
 /*
@@ -135,7 +135,7 @@ Messaggio di richiesta di spawn (per taxigen):
 typedef struct spawn
 {
   long mtype;
-  int mtext[2];
+  int mtext;
 } SpawnMsg;
 
 enum PrintMode

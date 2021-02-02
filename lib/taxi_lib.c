@@ -21,7 +21,6 @@
 #include "astar/pathfinder.h"
 
 #define TAXIPIDS_SIZE (SO_TAXI + 1)
-clockid_t g_stopwatch;
 
 int g_taxi_spawn_msq;
 int g_taxi_info_msq;
@@ -71,9 +70,10 @@ void init_data(int master_pid, int pos)
 void copy_city()
 {
   int i;
+  City city;
   g_city = malloc(sizeof(Cell) * (SO_WIDTH * SO_HEIGHT));
   DEBUG_RAISE_ADDR(g_city);
-  City city = shmat(g_city_id, NULL, SHM_RDONLY);
+  city = shmat(g_city_id, NULL, SHM_RDONLY);
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
   {
     g_city[i].type = city[i].type;
@@ -103,7 +103,7 @@ void receive_ride_request(RequestMsg *req)
   TaxiStatus status;
   int err;
   err = msgrcv(g_requests_msq, req, sizeof req->mtext, FAILED, MSG_EXCEPT);
-  DEBUG_RAISE_INT(g_master_pid, err);
+  DEBUG_RAISE_INT2(g_master_pid, err);
   g_last_request = req;
 
   status.available = FALSE;
@@ -198,32 +198,33 @@ void send_spawn_request()
   int err;
 
   req.mtype = RESPAWN;
-  req.mtext[0] = getpid();
+  req.mtext = getpid();
 
   err = msgsnd(g_taxi_spawn_msq, &req, sizeof req.mtext, 0);
-  DEBUG_RAISE_INT(g_master_pid, err);
+  DEBUG_RAISE_INT2(g_master_pid, err);
 }
 
-int CustomGetMap( int x, int y )
+int CustomGetMap(int x, int y)
 {
-	if( x < 0 ||
-	    x >= SO_WIDTH ||
-		 y < 0 ||
-		 y >= SO_HEIGHT
-	  )
-	{
-		return 9;	 
-	}
+  int index;
+  enum cell_type type;
+  if (x < 0 ||
+      x >= SO_WIDTH ||
+      y < 0 ||
+      y >= SO_HEIGHT)
+  {
+    return 9;
+  }
 
-  int index = coordinates2index(x, y);
-  enum cell_type type = g_city[index].type;
+  index = coordinates2index(x, y);
+  type = g_city[index].type;
 
-	return type == CELL_HOLE ? 9 : 1;
+  return type == CELL_HOLE ? 9 : 1;
 }
 
-float CostOfGoal(int X1,int Y1, int X2, int Y2,int (*GetMap)(int,int))
+float CostOfGoal(int X1, int Y1, int X2, int Y2, int (*GetMap)(int, int))
 {
-  return sqrt((float)((X2-X1)*(X2-X1))+((Y2-Y1)*(Y2-Y1)));
+  return sqrt((float)((X2 - X1) * (X2 - X1)) + ((Y2 - Y1) * (Y2 - Y1)));
 }
 
 void init_astar()
@@ -237,8 +238,8 @@ void init_astar()
 
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
   {
-    g_dataMap[i].GScore   = 0.0;
-    g_dataMap[i].FScore   = 0.0;
+    g_dataMap[i].GScore = 0.0;
+    g_dataMap[i].FScore = 0.0;
     g_dataMap[i].CameFrom = NULL;
   }
 }
@@ -260,7 +261,7 @@ AStar_Node *get_path(int position, int destination)
   }
   SolutionNavigator = NULL;
   NextInSolution = Solution;
-  
+
   /* Reverse the solution */
   if (NextInSolution)
   {
@@ -271,8 +272,7 @@ AStar_Node *get_path(int position, int destination)
       NextInSolution->NextInSolvedPath = SolutionNavigator;
       SolutionNavigator = NextInSolution;
       NextInSolution = g_dataMap[index].CameFrom;
-    }
-    while ((SolutionNavigator->X != start.x) || (SolutionNavigator->Y != start.y));
+    } while ((SolutionNavigator->X != start.x) || (SolutionNavigator->Y != start.y));
   }
   return SolutionNavigator;
 }
@@ -327,13 +327,14 @@ void set_aborted_request(enum Bool serving)
 
 void insert_aborted_request()
 {
+  int err;
   RequestMsg req;
   if (g_last_request != NULL)
   {
     req.mtype = (int)FAILED;
     req.mtext.origin = g_last_request->mtext.origin;
     req.mtext.destination = g_last_request->mtext.destination;
-    int err = msgsnd(g_requests_msq, &req, sizeof(Ride), 0);
-    DEBUG_RAISE_INT(getppid(), err);
+    err = msgsnd(g_requests_msq, &req, sizeof(Ride), 0);
+    DEBUG_RAISE_INT2(getppid(), err);
   }
 }

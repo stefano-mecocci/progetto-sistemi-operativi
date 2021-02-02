@@ -69,7 +69,7 @@ void receive_spawn_request(int taxi_spawn_msq, SpawnMsg *req)
 {
   int err;
   err = msgrcv(taxi_spawn_msq, req, sizeof req->mtext, 0, 0);
-  DEBUG_RAISE_INT(getppid(), err);
+  DEBUG_RAISE_INT2(getppid(), err);
 }
 
 pid_t create_taxi(int is_respawned)
@@ -78,7 +78,7 @@ pid_t create_taxi(int is_respawned)
   pid_t pid = fork();
   int err;
 
-  DEBUG_RAISE_INT(getpid(), pid);
+  DEBUG_RAISE_INT2(getpid(), pid);
 
   if (pid == 0)
   {

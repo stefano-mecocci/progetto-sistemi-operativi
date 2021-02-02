@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=c89
+CFLAGS = -std=c89 -pedantic
 OBJ = ./obj/
 
 compile: create-dirs utils.o params.o

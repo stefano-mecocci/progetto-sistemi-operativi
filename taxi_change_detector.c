@@ -55,21 +55,6 @@ int g_taxi_info_msq_id;
 int g_requests_msq_id;
 TaxiStatus *g_taxi_status_list;
 
-void init_stats()
-{
-  int i;
-
-  g_top_cells = malloc(sizeof(Tuple) * SO_TOP_CELLS);
-  DEBUG_RAISE_ADDR(g_top_cells);
-  g_crossed_cells_num = malloc(sizeof(int) * SO_WIDTH * SO_HEIGHT);
-  DEBUG_RAISE_ADDR(g_crossed_cells_num);
-
-  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
-  {
-    g_crossed_cells_num[i] = 0;
-  }
-}
-
 int main(int argc, char const *argv[])
 {
   set_handler();
@@ -88,6 +73,21 @@ int main(int argc, char const *argv[])
 
   atexit(close_files);
   return 0;
+}
+
+void init_stats()
+{
+  int i;
+
+  g_top_cells = malloc(sizeof(Tuple) * SO_TOP_CELLS);
+  DEBUG_RAISE_ADDR(g_top_cells);
+  g_crossed_cells_num = malloc(sizeof(int) * SO_WIDTH * SO_HEIGHT);
+  DEBUG_RAISE_ADDR(g_crossed_cells_num);
+
+  for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
+  {
+    g_crossed_cells_num[i] = 0;
+  }
 }
 
 void close_files()
