@@ -97,7 +97,7 @@ int generate_valid_pos()
   {
     pos = rand_int(0, SO_HEIGHT * SO_WIDTH - 1);
 
-    if (city[pos].type != CELL_HOLE)
+    if (pos != g_origin && city[pos].type != CELL_HOLE)
     {
       done = TRUE;
     }
