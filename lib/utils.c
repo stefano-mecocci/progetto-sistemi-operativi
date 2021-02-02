@@ -155,10 +155,11 @@ void unblock_signal(int signum)
 long get_milliseconds()
 {
   struct timeval tv;
+  long millisecondsSinceEpoch;
 
   gettimeofday(&tv, NULL);
 
-  long millisecondsSinceEpoch =
+  millisecondsSinceEpoch =
       (long)(tv.tv_sec) * 1000 +
       (long)(tv.tv_usec) / 1000;
 }

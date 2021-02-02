@@ -55,7 +55,7 @@ int generate_taxi_request(RequestMsg *req)
 void send_taxi_request(RequestMsg *req)
 {
   int err = msgsnd(g_requests_msq, req, sizeof req->mtext, 0);
-  DEBUG_RAISE_INT(getppid(), err);
+  DEBUG_RAISE_INT2(getppid(), err);
 }
 
 void set_source_position(int position)

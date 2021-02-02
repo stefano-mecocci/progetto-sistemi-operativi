@@ -70,9 +70,10 @@ void init_data(int master_pid, int pos)
 void copy_city()
 {
   int i;
+  City city;
   g_city = malloc(sizeof(Cell) * (SO_WIDTH * SO_HEIGHT));
   DEBUG_RAISE_ADDR(g_city);
-  City city = shmat(g_city_id, NULL, SHM_RDONLY);
+  city = shmat(g_city_id, NULL, SHM_RDONLY);
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
   {
     g_city[i].type = city[i].type;
@@ -102,7 +103,7 @@ void receive_ride_request(RequestMsg *req)
   TaxiStatus status;
   int err;
   err = msgrcv(g_requests_msq, req, sizeof req->mtext, FAILED, MSG_EXCEPT);
-  DEBUG_RAISE_INT(g_master_pid, err);
+  DEBUG_RAISE_INT2(g_master_pid, err);
   g_last_request = req;
 
   status.available = FALSE;
@@ -200,11 +201,13 @@ void send_spawn_request()
   req.mtext = getpid();
 
   err = msgsnd(g_taxi_spawn_msq, &req, sizeof req.mtext, 0);
-  DEBUG_RAISE_INT(g_master_pid, err);
+  DEBUG_RAISE_INT2(g_master_pid, err);
 }
 
 int CustomGetMap(int x, int y)
 {
+  int index;
+  enum cell_type type;
   if (x < 0 ||
       x >= SO_WIDTH ||
       y < 0 ||
@@ -213,8 +216,8 @@ int CustomGetMap(int x, int y)
     return 9;
   }
 
-  int index = coordinates2index(x, y);
-  enum cell_type type = g_city[index].type;
+  index = coordinates2index(x, y);
+  type = g_city[index].type;
 
   return type == CELL_HOLE ? 9 : 1;
 }
@@ -324,13 +327,14 @@ void set_aborted_request(enum Bool serving)
 
 void insert_aborted_request()
 {
+  int err;
   RequestMsg req;
   if (g_last_request != NULL)
   {
     req.mtype = (int)FAILED;
     req.mtext.origin = g_last_request->mtext.origin;
     req.mtext.destination = g_last_request->mtext.destination;
-    int err = msgsnd(g_requests_msq, &req, sizeof(Ride), 0);
-    DEBUG_RAISE_INT(getppid(), err);
+    err = msgsnd(g_requests_msq, &req, sizeof(Ride), 0);
+    DEBUG_RAISE_INT2(getppid(), err);
   }
 }

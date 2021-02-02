@@ -81,7 +81,7 @@ enum TaxiOps
   BASICMOV = 4,
   SERVED = 5,
   TIMEOUT = 6,
-  ABORTED = 7,
+  ABORTED = 7
 };
 
 /*

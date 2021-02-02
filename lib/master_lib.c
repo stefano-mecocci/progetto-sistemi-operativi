@@ -522,10 +522,11 @@ Create a source process passing position as argv[1]
 */
 void create_source(int position)
 {
-  char position_str[12]; /* twelve are the max digits of an integer */
-  sprintf(position_str, "%d", position);
-  char *args[3] = {SOURCE_OBJ, position_str, NULL};
   int err;
+  /* twelve are the max digits of an integer */
+  char *args[3] = { SOURCE_OBJ, NULL, NULL };
+  args[1] = calloc(12, sizeof(char));
+  sprintf(args[1], "%d", position);
 
   err = execve(args[0], args, environ);
 
