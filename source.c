@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <time.h>
 
 int main(int argc, char const *argv[])
 {
@@ -16,7 +17,6 @@ int main(int argc, char const *argv[])
   int origin = atoi(argv[1]);
   RequestMsg req;
 
-  /* REFACTORING: da rivedere */
   srand(time(NULL) ^ getpid());
 
   set_handler();

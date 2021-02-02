@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# for debug
 ipcrm -a
 
 export SO_HOLES=50

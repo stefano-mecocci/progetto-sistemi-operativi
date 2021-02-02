@@ -82,10 +82,6 @@ extern int rand_int(int min, int max);
 /* Enqueues taxi status update */
 extern int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status);
 
-/* milliseconds from 1970 */
-extern long get_milliseconds();
-
-/* REFACTORING: da rivedere */
 extern void reset_stopwatch();
 
 extern long record_stopwatch();

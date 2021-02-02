@@ -126,6 +126,7 @@ int send_taxi_update(int queue_id, enum TaxiOps op, TaxiStatus status)
   return msgsnd(queue_id, &msg, sizeof(TaxiStatus), 0);
 }
 
+/* milliseconds from 1970 */
 long get_milliseconds()
 {
   struct timeval tv;

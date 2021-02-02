@@ -190,7 +190,6 @@ void init_city_sems_cap(int city_id, int city_sems_cap)
   shmdt(city);
 }
 
-/* REFACTORING: da rivedere con Samuele */
 void place_city_holes(int city_id)
 {
   City city = shmat(city_id, NULL, 0);

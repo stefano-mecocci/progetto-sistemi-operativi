@@ -78,7 +78,7 @@ void source_handler(int signum)
     break;
 
   case SIGUSR1:
-    /* Only used to interrupt sleep in main */
+    /* Only used to interrupt sleep in main (of source) */
     break;
 
   default:

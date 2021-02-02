@@ -66,7 +66,6 @@ void init_data(int master_pid, int pos)
   g_pos = pos;
 }
 
-/* REFACTORING: da rivedere */
 void copy_city()
 {
   int i;
@@ -124,7 +123,7 @@ void set_handler()
   bzero(&act, sizeof act);
 
   act.sa_sigaction = taxi_handler;
-  act.sa_flags = /* SA_NODEFER | */ SA_SIGINFO;
+  act.sa_flags = SA_SIGINFO;
 
   sigaction(SIGALRM, &act, NULL);
   sigaction(SIGTERM, &act, NULL);
@@ -241,7 +240,7 @@ void send_spawn_request()
   DEBUG_RAISE_INT2(g_master_pid, err);
 }
 
-/* REFACTORING: da rivedere con Samuele */
+/* returns 1 if cell is crossable, 9 instead (HOLE) */
 int CustomGetMap(int x, int y)
 {
   int index;
@@ -258,7 +257,6 @@ int CustomGetMap(int x, int y)
   return type == CELL_HOLE ? 9 : 1;
 }
 
-/* REFACTORING: da rivedere con Samuele */
 float CostOfGoal(int X1, int Y1, int X2, int Y2, int (*GetMap)(int, int))
 {
   return sqrt((float)((X2 - X1) * (X2 - X1)) + ((Y2 - Y1) * (Y2 - Y1)));
@@ -283,7 +281,6 @@ void init_astar()
   }
 }
 
-/* REFACTORING: da rivedere con Samuele */
 AStar_Node *get_path(int position, int destination)
 {
   AStar_Node *Solution;
@@ -314,6 +311,7 @@ AStar_Node *get_path(int position, int destination)
       NextInSolution = g_dataMap[index].CameFrom;
     } while ((SolutionNavigator->X != start.x) || (SolutionNavigator->Y != start.y));
   }
+  
   return SolutionNavigator;
 }
 

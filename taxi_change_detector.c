@@ -236,10 +236,6 @@ void update_taxi_availability_list(TaxiActionMsg update)
     g_taxi_status_list[index].available = FALSE;
     g_taxi_status_list[index].position = -1;
   }
-  else
-  {
-    /* taxi operation out of known range - REFACTORING: serve davvero? */
-  }
 }
 
 void write_update_to_file(TaxiActionMsg msg)
