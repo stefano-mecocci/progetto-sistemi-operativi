@@ -260,8 +260,7 @@ void create_taxis(int taxi_spawn_msq)
   for (i = 0; i < SO_TAXI; i++)
   {
     req.mtype = SPAWN;
-    req.mtext[0] = -1;
-    req.mtext[1] = -1;
+    req.mtext = -1;
 
     err = msgsnd(taxi_spawn_msq, &req, sizeof req.mtext, 0);
     DEBUG_RAISE_INT(err);

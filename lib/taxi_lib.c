@@ -198,32 +198,31 @@ void send_spawn_request()
   int err;
 
   req.mtype = RESPAWN;
-  req.mtext[0] = getpid();
+  req.mtext = getpid();
 
   err = msgsnd(g_taxi_spawn_msq, &req, sizeof req.mtext, 0);
   DEBUG_RAISE_INT(g_master_pid, err);
 }
 
-int CustomGetMap( int x, int y )
+int CustomGetMap(int x, int y)
 {
-	if( x < 0 ||
-	    x >= SO_WIDTH ||
-		 y < 0 ||
-		 y >= SO_HEIGHT
-	  )
-	{
-		return 9;	 
-	}
+  if (x < 0 ||
+      x >= SO_WIDTH ||
+      y < 0 ||
+      y >= SO_HEIGHT)
+  {
+    return 9;
+  }
 
   int index = coordinates2index(x, y);
   enum cell_type type = g_city[index].type;
 
-	return type == CELL_HOLE ? 9 : 1;
+  return type == CELL_HOLE ? 9 : 1;
 }
 
-float CostOfGoal(int X1,int Y1, int X2, int Y2,int (*GetMap)(int,int))
+float CostOfGoal(int X1, int Y1, int X2, int Y2, int (*GetMap)(int, int))
 {
-  return sqrt((float)((X2-X1)*(X2-X1))+((Y2-Y1)*(Y2-Y1)));
+  return sqrt((float)((X2 - X1) * (X2 - X1)) + ((Y2 - Y1) * (Y2 - Y1)));
 }
 
 void init_astar()
@@ -237,8 +236,8 @@ void init_astar()
 
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
   {
-    g_dataMap[i].GScore   = 0.0;
-    g_dataMap[i].FScore   = 0.0;
+    g_dataMap[i].GScore = 0.0;
+    g_dataMap[i].FScore = 0.0;
     g_dataMap[i].CameFrom = NULL;
   }
 }
@@ -260,7 +259,7 @@ AStar_Node *get_path(int position, int destination)
   }
   SolutionNavigator = NULL;
   NextInSolution = Solution;
-  
+
   /* Reverse the solution */
   if (NextInSolution)
   {
@@ -271,8 +270,7 @@ AStar_Node *get_path(int position, int destination)
       NextInSolution->NextInSolvedPath = SolutionNavigator;
       SolutionNavigator = NextInSolution;
       NextInSolution = g_dataMap[index].CameFrom;
-    }
-    while ((SolutionNavigator->X != start.x) || (SolutionNavigator->Y != start.y));
+    } while ((SolutionNavigator->X != start.x) || (SolutionNavigator->Y != start.y));
   }
   return SolutionNavigator;
 }

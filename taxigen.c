@@ -40,7 +40,7 @@ int main()
     if (req.mtype == RESPAWN)
     {
       taxi_pid = create_taxi(TRUE);
-      replace_taxi_pid(req.mtext[0], taxi_pid);
+      replace_taxi_pid(req.mtext, taxi_pid);
     }
     else
     {

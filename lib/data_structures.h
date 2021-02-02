@@ -135,7 +135,7 @@ Messaggio di richiesta di spawn (per taxigen):
 typedef struct spawn
 {
   long mtype;
-  int mtext[2];
+  int mtext;
 } SpawnMsg;
 
 enum PrintMode

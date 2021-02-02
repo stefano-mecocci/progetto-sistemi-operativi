@@ -43,6 +43,7 @@ int main()
   init_sync_sems(sync_sems);
   init_city_sems_cap(city_id, city_sems_cap);
 
+  start_change_detector();
   create_sources();
   err = sem_op(sync_sems, SEM_SYNC_SOURCES, 0, 0);
   DEBUG_RAISE_INT(err);
@@ -53,7 +54,6 @@ int main()
   DEBUG_RAISE_INT(err);
 
   start_timer();
-  start_change_detector();
 
   while (TRUE)
   {
