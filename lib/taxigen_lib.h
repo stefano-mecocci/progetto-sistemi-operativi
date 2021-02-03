@@ -1,25 +1,25 @@
-#ifndef _TAXIGEN_H
-#define _TAXIGEN_H
+#ifndef _TAXIGEN_LIB_H
+#define _TAXIGEN_LIB_H
 
 #include <sys/types.h>
 #include "data_structures.h"
 
-/* Imposta il signal handler di taxigen */
+/* Set taxigen signal handler */
 void set_handler();
 
-/* Inizializza i dati globali di taxigen */
+/* Initialize taxigen global data/variables */
 void init_data();
 
-/* Riceve una richiesta di spawn di taxi */
+/* Receive(wait for) a taxi spawn request */
 void receive_spawn_request(int taxi_spawn_msq, SpawnMsg *req);
 
-/* Crea un processo taxi passandogli la posizione e il master pid */
+/* Create taxi process with args: master pid and (bool) is respawned */
 pid_t create_taxi(int isNew);
 
-/* Aggiunge un pid all'array globale g_taxi_pids */
+/* Add pid to global array g_taxi_pids */
 void add_taxi_pid(pid_t pid);
 
-/* Rimpiazza un pid nell'array global g_taxi_pids */
+/* Replace pid in global array g_taxi_pids */
 void replace_taxi_pid(pid_t old_pid, pid_t new_pid);
 
 #endif

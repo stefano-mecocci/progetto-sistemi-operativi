@@ -127,7 +127,7 @@ void replace_taxi_pid(pid_t old_pid, pid_t new_pid)
 /* Signal handler di taxigen */
 void taxigen_handler(int signum)
 {
-  int i, status, child_pid;
+  int status, child_pid;
 
   switch (signum)
   {

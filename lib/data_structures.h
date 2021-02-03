@@ -2,27 +2,51 @@
 #define _DATA_STRUCTURES_H
 
 #include <sys/types.h>
-#include <stdlib.h>
 
+/* classic types which are always useful */
+
+enum Bool
+{
+  FALSE,
+  TRUE
+};
+
+typedef struct tuple
+{
+  int key;
+  int value;
+} Tuple;
+
+
+/* Indexes of the semaphore array sync_sems */
+
+/* why the sem? to syncronize taxi spawn at the start */
 #define SEM_SYNC_TAXI 0
+
+/* why the sem? to syncronize sources spawn at the start */
 #define SEM_SYNC_SOURCES 1
+
+/* For taxi process fork, SPAWN == is one of the first SO_TAXI */
+
 #define SPAWN 2
 #define RESPAWN 3
+
+/* Exit for timer by SO_DURATION seconds */
+
 #define EXIT_TIMER 2
 
-/* Tipo di cella */
 enum cell_type
 {
-  CELL_NORMAL,
-  CELL_HOLE,
-  CELL_SOURCE
+  CELL_NORMAL, /* cell with no taxi */
+  CELL_HOLE,   /* hole or obstacle */
+  CELL_SOURCE  /* a cell which produces taxi requests */
 };
 
 /*
 Cella
-- type: normale, buca o di origine
-- capacity: max. di taxi che ci possono essere
-- cross_time: tempo necessario per attraversare la cella
+- type: cell_type
+- capacity: max number of taxi in the cell at the same time
+- cross_time: time to cross the cell
 */
 typedef struct cell
 {
@@ -31,23 +55,18 @@ typedef struct cell
   int cross_time;
 } Cell;
 
-/* Città = array di lunghezza SO_WIDTH * SO_HEIGHT */
+/* City = array of length SO_WIDTH * SO_HEIGHT */
 typedef Cell *City;
 
-/* Utile per calcolare posizioni sulla città */
+/* Useful to calculate positions on the city */
 typedef struct point
 {
   int x;
   int y;
 } Point;
 
-enum Bool
-{
-  FALSE,
-  TRUE
-};
+/* Structs for linked list of TaxiStats */
 
-/* ----- Structs per linked list di TaxiStats ----- */
 typedef struct taxi
 {
   pid_t pid;
@@ -73,6 +92,7 @@ typedef struct taxi_status
   long longest_travel_time;
 } TaxiStatus;
 
+/* value of mtype in a TaxiActionMsg */
 enum TaxiOps
 {
   SPAWNED = 1,
@@ -96,16 +116,7 @@ typedef struct
   TaxiStatus mtext;
 } TaxiActionMsg;
 
-/* DEPRECATED
-Messaggio di richiesta taxi:
-- mtext == Taxi
-*/
-typedef struct taxi_info
-{
-  long mtype;
-  int mtext[sizeof(int) * 3];
-} TaxiInfo;
-
+/* Define what a ride is: origin to destination */
 typedef struct ride
 {
   int origin;
@@ -117,20 +128,21 @@ enum RequestType
   NORMAL = 1,
   FAILED = 2
 };
+
 /*
-Messaggio di richiesta taxi:
-- mtext indica punti di origine e destinazione [origin, destination] 
+Taxi request message
+- mtype is a value between RequestType enum
+- mtext see Ride
 */
 typedef struct request
 {
-  long mtype; /* mtype is a value between RequestType enum */
+  long mtype;
   Ride mtext;
 } RequestMsg;
 
 /*
-Messaggio di richiesta di spawn (per taxigen):
-- pid = pid del taxi morto da rimuovere (se -1 viene ignorato)
-- pos = posizione nella città
+Spawn request message for taxigen:
+- mtext = pid of dead taxi (default -1)
 */
 typedef struct spawn
 {
@@ -138,17 +150,15 @@ typedef struct spawn
   int mtext;
 } SpawnMsg;
 
+/*
+Define different types of printing for print_city function
+see lib/utils.c
+*/
 enum PrintMode
 {
   ACT_CAPACITY,
   SOURCES,
   TOP_CELLS
 };
-
-typedef struct tuple
-{
-  int key;
-  int value;
-} Tuple;
 
 #endif

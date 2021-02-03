@@ -43,6 +43,8 @@ int main(int argc, char const *argv[])
   status.available = TRUE;
   status.pid = getpid();
   status.position = position;
+  status.longest_travel_time = -1;
+
   send_taxi_update(taxi_info_msq, SPAWNED, status);
 
   init_data(master_pid, position);
