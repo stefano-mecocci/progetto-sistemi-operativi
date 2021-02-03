@@ -12,6 +12,7 @@
 #include <sys/sem.h>
 #include <unistd.h>
 
+/* Prints master pid */
 void print_pid() { printf("\n[MASTER] pid %d\n\n", getpid()); }
 
 int main()
