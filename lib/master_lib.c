@@ -483,7 +483,7 @@ void send_signal_to_sources(int signal)
 {
   int i;
 
-  for (i = 0; i < SO_SOURCES; i++)
+  for (i = 0; g_source_pids != NULL && i < SO_SOURCES; i++)
   {
     if (g_source_pids[i] != -1)
     {
