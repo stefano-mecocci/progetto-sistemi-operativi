@@ -5,13 +5,13 @@
 void check_params() {
   int max_holes = get_max_holes();
 
-  if (SO_WIDTH < 2 || SO_HEIGHT < 2) {
+  if (SO_WIDTH < 2 && SO_HEIGHT < 2) {
     printf("Errore: città troppo piccola\n");
     raise(SIGTERM);
   }
 
-  if (SO_CAP_MIN < 1 || SO_CAP_MAX < 1) {
-    printf("Errore: SO_CAP_MIN o SO_CAP_MAX negativi o pari a zero\n");
+  if (SO_CAP_MIN < 1 || SO_CAP_MAX < SO_CAP_MIN) {
+    printf("Errore: SO_CAP_MAX deve essere maggiore SO_CAP_MIN ed entrambi maggiori di 1\n");
     raise(SIGTERM);
   }
 
@@ -22,6 +22,11 @@ void check_params() {
 
   if (SO_TOP_CELLS < 1) {
     printf("Errore: SO_TOP_CELLS minore di 1\n");
+    raise(SIGTERM);
+  }
+
+  if (SO_TOP_CELLS > (SO_WIDTH * SO_HEIGHT - SO_HOLES)) {
+    printf("Errore: SO_TOP_CELLS maggiore delle celle totali disponibili\n");
     raise(SIGTERM);
   }
 
@@ -40,8 +45,8 @@ void check_params() {
     raise(SIGTERM);
   }
 
-  if (SO_TIMENSEC_MIN > SO_TIMENSEC_MAX) {
-    printf("Errore: SO_TIMENSEC_MIN maggiore di SO_TIMENSEC_MAX\n");
+  if (SO_TIMENSEC_MIN < 0 || SO_TIMENSEC_MAX < SO_TIMENSEC_MIN) {
+    printf("Errore: SO_TIMENSEC_MIN deve essere maggiore di SO_TIMENSEC_MAX ed entrambi interi positivi\n");
     raise(SIGTERM);
   }
 
