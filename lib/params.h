@@ -49,6 +49,8 @@
 
 extern void check_params();
 
+extern void ensure_enough_taxi_capacity(int tot_capacity);
+
 extern int get_max_holes();
 
 #endif

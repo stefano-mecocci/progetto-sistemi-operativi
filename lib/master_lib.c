@@ -155,17 +155,20 @@ void set_handler()
 
 void init_city_cells(int city_id)
 {
+  int tot_capacity = 0;
   City city = shmat(city_id, NULL, 0);
   int i;
 
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
   {
     city[i].type = CELL_NORMAL;
-    city[i].capacity = rand_int(SO_CAP_MIN, SO_CAP_MAX);
-    city[i].cross_time = rand_int(SO_TIMENSEC_MIN, SO_TIMENSEC_MAX);
+    tot_capacity += (city[i].capacity = rand_int(SO_CAP_MIN, SO_CAP_MAX));
+    city[i].cross_time = rand_int(SO_TIMENSEC_MIN, SO_TIMENSEC_MAX);    
   }
 
   shmdt(city);
+
+  ensure_enough_taxi_capacity(tot_capacity);
 }
 
 void init_sync_sems(int sync_sems)

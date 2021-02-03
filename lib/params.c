@@ -36,6 +36,15 @@ void check_params()
   }
 }
 
+void ensure_enough_taxi_capacity(int tot_capacity)
+{
+  if (SO_TAXI > tot_capacity)
+  {
+    printf("Errore: SO_TAXI maggiore della capacità totale estratta casualmente. \n");
+    raise(SIGTERM);
+  }
+}
+
 int get_max_holes()
 {
   return GET_HOLE_RATIO(SO_WIDTH) * GET_HOLE_RATIO(SO_HEIGHT);
