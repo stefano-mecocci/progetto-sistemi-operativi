@@ -2,7 +2,7 @@
 
 ipcrm -a
 
-export SO_HOLES=9
+export SO_HOLES=10
 
 export SO_TOP_CELLS=4
 
@@ -22,4 +22,4 @@ export SO_TIMEOUT=1
 
 export SO_DURATION=10
 
-./obj/master.o
+./obj/master
