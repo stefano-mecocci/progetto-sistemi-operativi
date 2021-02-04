@@ -1,4 +1,8 @@
-# Progetto per il corso di Sistemi Operativi UniTO 2020/2021
+# Progetto di Sistemi Operativi 2020/2021
+
+> A cura di Stefano Mecocci e Samuele Pecetto
+
+___
 
 ## Struttura del progetto
 Il progetto è organizzato nelle seguenti cartelle:
