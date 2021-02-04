@@ -46,7 +46,7 @@ void set_handler()
 
 int generate_taxi_request(RequestMsg *req)
 {
-  req->mtype = (int)NORMAL;
+  req->mtype = NORMAL;
   req->mtext.origin = g_origin;
   req->mtext.destination = generate_valid_pos();
   return 0;
@@ -71,8 +71,6 @@ void set_source_position(int position)
 /* Signal handler del processo source */
 void source_handler(int signum)
 {
-  RequestMsg req;
-
   switch (signum)
   {
   case SIGTERM:
@@ -80,7 +78,7 @@ void source_handler(int signum)
     break;
 
   case SIGUSR1:
-    /* Only used to interrupt sleep in main */
+    /* Only used to interrupt sleep in main (of source) */
     break;
 
   default:
@@ -97,7 +95,7 @@ int generate_valid_pos()
   {
     pos = rand_int(0, SO_HEIGHT * SO_WIDTH - 1);
 
-    if (city[pos].type != CELL_HOLE)
+    if (pos != g_origin && city[pos].type != CELL_HOLE)
     {
       done = TRUE;
     }

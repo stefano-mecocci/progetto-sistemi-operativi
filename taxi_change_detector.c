@@ -169,9 +169,10 @@ void update_taxi_status(enum Bool empty)
 /* updates taxi status in shared memory */
 void update_taxi_availability_list(TaxiActionMsg update)
 {
-  int err;
-  pid_t *current;
+  int err = 0;
+  pid_t *current = NULL;
   int index = 0;
+
   while (current == NULL && index < SO_TAXI)
   {
     if (update.mtype == SPAWNED && g_taxi_status_list[index].pid == -1)
@@ -235,10 +236,6 @@ void update_taxi_availability_list(TaxiActionMsg update)
     g_taxi_status_list[index].available = FALSE;
     g_taxi_status_list[index].position = -1;
   }
-  else
-  {
-    /* taxi operation out of known range */
-  }
 }
 
 void write_update_to_file(TaxiActionMsg msg)
@@ -272,7 +269,7 @@ void write_unserved_to_file(RequestMsg msg)
 
 char *get_string_by_bool(enum Bool val)
 {
-  if (val == TRUE)
+  if (val)
   {
     return "TRUE";
   }
@@ -476,9 +473,6 @@ void write_stats_to_report_file()
 /* Signal handler del processo taxi_change_detector */
 void taxi_change_detector_handler(int signum)
 {
-  int i, err;
-  char selection;
-
   switch (signum)
   {
   case SIGTERM: /* Interrupts the simulation - politely ask a program to terminate - can be blocked, handled, and ignored */

@@ -12,6 +12,7 @@
 #include <sys/sem.h>
 #include <unistd.h>
 
+/* Prints master pid */
 void print_pid() { printf("\n[MASTER] pid %d\n\n", getpid()); }
 
 int main()
@@ -31,9 +32,9 @@ int main()
   write_id_to_file(taxi_spawn_msq, IPC_TAXI_SPAWN_MSQ_FILE);
   write_id_to_file(taxi_info_msq, IPC_TAXI_INFO_MSQ_FILE);
 
+  set_handler();
   check_params();
   init_data();
-  set_handler();
 
   print_pid();
 

@@ -39,7 +39,6 @@ int g_pos;
 NodeDataMap *g_dataMap = NULL;
 
 int set_taxi(int city_id, int city_sems_cap);
-
 void taxi_handler(int, siginfo_t *, void *);
 void send_spawn_request();
 void insert_aborted_request();
@@ -71,15 +70,19 @@ void copy_city()
 {
   int i;
   City city;
+
   g_city = malloc(sizeof(Cell) * (SO_WIDTH * SO_HEIGHT));
   DEBUG_RAISE_ADDR(g_city);
+
   city = shmat(g_city_id, NULL, SHM_RDONLY);
+
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
   {
     g_city[i].type = city[i].type;
     g_city[i].cross_time = city[i].cross_time;
     g_city[i].capacity = city[i].capacity;
   }
+
   shmdt(city);
 }
 
@@ -109,6 +112,8 @@ void receive_ride_request(RequestMsg *req)
   status.available = FALSE;
   status.pid = getpid();
   status.position = get_position();
+  status.longest_travel_time = -1;
+
   send_taxi_update(g_taxi_info_msq, DEQUEUE, status);
 }
 
@@ -118,22 +123,51 @@ void set_handler()
   bzero(&act, sizeof act);
 
   act.sa_sigaction = taxi_handler;
-  act.sa_flags = /* SA_NODEFER | */ SA_SIGINFO;
+  act.sa_flags = SA_SIGINFO;
 
   sigaction(SIGALRM, &act, NULL);
   sigaction(SIGTERM, &act, NULL);
 }
 
+void travel(AStar_Node *navigator)
+{
+  int crossing_time, next_addr;
+  TaxiStatus status;
+
+  while (navigator = navigator->NextInSolvedPath)
+  {
+    next_addr = coordinates2index(navigator->X, navigator->Y);
+
+    crossing_time = g_city[next_addr].cross_time;
+
+    sem_transfer_capacity(next_addr);
+    set_position(next_addr);
+
+    start_timer();
+
+    sleep_for(0, crossing_time);
+
+    status.available = FALSE;
+    status.pid = getpid();
+    status.position = get_position();
+    status.longest_travel_time = -1;
+
+    send_taxi_update(g_taxi_info_msq, BASICMOV, status);
+  }
+}
+
 /*
 ====================================
-  PRIVATE
+  "PRIVATE"
 ====================================
 */
 
+/* taxi signal handler (see set_handler()) */
 void taxi_handler(int signum, siginfo_t *info, void *context)
 {
-  int i, err, timer_status, semval;
+  int err = 0;
   TaxiStatus status;
+
   status.pid = getpid();
   status.position = g_pos;
 
@@ -171,6 +205,8 @@ void taxi_handler(int signum, siginfo_t *info, void *context)
   }
 }
 
+
+/* Set the taxy in pos by decreasing the capacity semaphore */
 int set_taxi(int city_id, int city_sems_cap)
 {
   City city = shmat(city_id, NULL, 0);
@@ -191,7 +227,7 @@ int set_taxi(int city_id, int city_sems_cap)
   return pos;
 }
 
-/* Invia una richiesta di spawn a taxigen */
+/* Send a re-spawn request to taxigen */
 void send_spawn_request()
 {
   SpawnMsg req;
@@ -204,14 +240,13 @@ void send_spawn_request()
   DEBUG_RAISE_INT2(g_master_pid, err);
 }
 
+/* returns 1 if cell is crossable, 9 instead (HOLE) */
 int CustomGetMap(int x, int y)
 {
   int index;
   enum cell_type type;
-  if (x < 0 ||
-      x >= SO_WIDTH ||
-      y < 0 ||
-      y >= SO_HEIGHT)
+
+  if (x < 0 || x >= SO_WIDTH || y < 0 || y >= SO_HEIGHT)
   {
     return 9;
   }
@@ -230,10 +265,12 @@ float CostOfGoal(int X1, int Y1, int X2, int Y2, int (*GetMap)(int, int))
 void init_astar()
 {
   int i;
+
   if (g_dataMap != NULL)
   {
     free(g_dataMap);
   }
+
   g_dataMap = malloc(sizeof(*g_dataMap) * SO_WIDTH * SO_HEIGHT);
 
   for (i = 0; i < SO_WIDTH * SO_HEIGHT; i++)
@@ -274,33 +311,8 @@ AStar_Node *get_path(int position, int destination)
       NextInSolution = g_dataMap[index].CameFrom;
     } while ((SolutionNavigator->X != start.x) || (SolutionNavigator->Y != start.y));
   }
+  
   return SolutionNavigator;
-}
-
-void travel(AStar_Node *navigator)
-{
-  int i, crossing_time, next_addr;
-  TaxiStatus status;
-  Point p = index2point(get_position());
-  while (navigator = navigator->NextInSolvedPath)
-  {
-    next_addr = coordinates2index(navigator->X, navigator->Y);
-
-    crossing_time = g_city[next_addr].cross_time;
-
-    sem_transfer_capacity(next_addr);
-    set_position(next_addr);
-
-    start_timer();
-
-    sleep_for(0, crossing_time);
-
-    status.available = FALSE;
-    status.pid = getpid();
-    status.position = get_position();
-
-    send_taxi_update(g_taxi_info_msq, BASICMOV, status);
-  }
 }
 
 void sem_transfer_capacity(int next_addr)

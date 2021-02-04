@@ -1,5 +1,5 @@
-#ifndef _MASTER_H
-#define _MASTER_H
+#ifndef _MASTER_LIB_H
+#define _MASTER_LIB_H
 
 #include <sys/types.h>
 
@@ -19,8 +19,8 @@ of length 2
 extern int create_sync_sems();
 
 /*
-Create the IPC semaphore array for cells
-capacity, with length SO_WIDTH * SO_HEIGHT
+Create the IPC semaphore array for cells capacity, 
+with length SO_WIDTH * SO_HEIGHT
 */
 extern int create_city_sems_cap();
 

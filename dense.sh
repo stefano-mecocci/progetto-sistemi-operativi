@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# for debug
 ipcrm -a
 
 export SO_HOLES=10
@@ -22,4 +23,4 @@ export SO_TIMEOUT=1 # default = 1
 
 export SO_DURATION=20 # default = 20
 
-./obj/master.o
+./obj/master

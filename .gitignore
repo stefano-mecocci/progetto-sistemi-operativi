@@ -3,6 +3,7 @@
 
 # executables
 *.o
+obj/*
 
 # folder for ipc id files
 ipc_res/*

@@ -16,7 +16,10 @@ extern void list_increase_taxi_crossed_cells(List p, pid_t pid);
 /* Increase the requests field of a node elem by pid */
 extern void list_increase_taxi_requests(List p, pid_t pid);
 
-/* Print the elem of each node of the list */
+/*
+Print the elem of each node of the list
+for debug purposes
+*/
 extern void list_print(List p);
 
 #endif
